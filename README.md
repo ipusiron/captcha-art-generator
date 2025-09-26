@@ -28,7 +28,7 @@ demo: https://ipusiron.github.io/captcha-art-generator/
 
 ## 🌐 デモページ
 
-👉 **[https://ipusiron.github.io/infoquantity-academy/](https://ipusiron.github.io/infoquantity-academy/)**
+👉 **[https://ipusiron.github.io/captcha-art-generator/](https://ipusiron.github.io/captcha-art-generator/)**
 
 ブラウザーで直接お試しいただけます。
 
