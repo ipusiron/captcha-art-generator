@@ -1,0 +1,632 @@
+/* ========================================
+   CSS CUSTOM PROPERTIES (DARK THEME)
+   ========================================
+   Dark theme color palette for CAPTCHA Art Generator
+   These variables are overridden in [data-theme="light"] for light mode
+*/
+:root{
+  --bg:#0f1220;          /* Main background - deep blue */
+  --panel:#151935;        /* Panel background - lighter blue */
+  --text:#e9ecff;         /* Primary text - light blue-white */
+  --muted:#b7bde6;        /* Muted text - medium blue */
+  --accent:#7ea8ff;       /* Primary accent - bright blue */
+  --accent2:#6ee7b7;      /* Secondary accent - green */
+  --danger:#ff8a8a;       /* Danger/warning - red */
+  --border:#242a55;       /* Border color - dark blue */
+  --input-bg:#0e1330;     /* Input background - darker blue */
+  --input-hover:#22285a;  /* Input hover state - medium blue */
+}
+
+/* ========================================
+   LIGHT THEME OVERRIDES
+   ========================================
+   Light theme color palette - overrides dark theme variables
+*/
+[data-theme="light"]{
+  --bg:#f7f8fa;          /* Light gray background */
+  --panel:#ffffff;        /* White panels */
+  --text:#1a1f36;         /* Dark blue text */
+  --muted:#64748b;        /* Gray muted text */
+  --accent:#2563eb;       /* Blue accent */
+  --accent2:#10b981;      /* Green accent */
+  --danger:#ef4444;       /* Red danger */
+  --border:#e2e8f0;       /* Light gray border */
+  --input-bg:#f1f5f9;     /* Light input background */
+  --input-hover:#e2e8f0;  /* Light input hover */
+}
+/* ========================================
+   GLOBAL STYLES
+   ========================================
+*/
+*{box-sizing:border-box} /* Consistent box model */
+/* ========================================
+   THEME TOGGLE BUTTON
+   ========================================
+   Floating theme switcher positioned relative to content area
+*/
+.theme-toggle{
+  position:absolute;
+  top:20px;
+  right:calc((100vw - 1100px)/2 + 16px); /* Align with content right edge */
+  background:var(--panel);
+  border:1px solid var(--border);
+  color:var(--text);
+  width:44px;
+  height:44px;
+  border-radius:12px;
+  cursor:pointer;
+  font-size:20px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:all 0.3s ease;
+  z-index:100;
+}
+
+/* Responsive positioning for narrow screens */
+@media (max-width: 1132px){
+  .theme-toggle{right:32px}
+}
+
+.theme-toggle:hover{
+  background:var(--input-hover);
+  transform:scale(1.05);
+}
+
+.theme-icon{
+  display:inline-block;
+  transition:transform 0.3s ease;
+}
+
+.theme-toggle:active .theme-icon{
+  transform:rotate(20deg); /* Fun click animation */
+}
+/* ========================================
+   BASE LAYOUT
+   ========================================
+*/
+html,body{
+  margin:0;
+  padding:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans JP","Apple Color Emoji","Segoe UI Emoji",sans-serif;
+}
+/* ========================================
+   HEADER SECTION
+   ========================================
+*/
+.header{
+  padding:28px 16px 8px;
+  text-align:center;
+}
+
+.header h1{
+  margin:0;
+  font-size:28px;
+  letter-spacing:.5px;
+}
+
+.subtitle{
+  margin:.25rem 0 0;
+  color:var(--muted);
+  font-size:14px;
+}
+/* ========================================
+   MAIN CONTAINER LAYOUT
+   ========================================
+   Two-column grid: controls panel + preview panel
+*/
+.container{
+  display:grid;
+  grid-template-columns:360px 1fr; /* Fixed sidebar, flexible preview */
+  gap:16px;
+  max-width:1100px;
+  padding:16px;
+  margin:0 auto;
+}
+/* ========================================
+   PANEL COMPONENTS
+   ========================================
+   Reusable panel styling for controls and preview
+*/
+.panel{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:20px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.1); /* Subtle elevation */
+}
+
+.panel h2{
+  margin:0 0 8px;
+  font-size:18px;
+}
+/* ========================================
+   FORM CONTROLS
+   ========================================
+   Input fields, labels, and form layout
+*/
+.controls .field{
+  display:flex;
+  flex-direction:column;
+  margin-bottom:10px;
+}
+
+.controls .field span{
+  font-size:12px;
+  color:var(--muted);
+  margin-bottom:6px;
+  display:flex;
+  align-items:center;
+  gap:4px; /* Space between label and help icon */
+}
+
+/* ========================================
+   HELP TOOLTIPS
+   ========================================
+   Interactive help icons with hover tooltips
+*/
+.help-icon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:14px;
+  height:14px;
+  border-radius:50%;
+  background:var(--border);
+  color:var(--muted);
+  font-size:9px;
+  font-weight:bold;
+  cursor:help;
+  position:relative;
+  transition:all 0.2s;
+  margin-left:4px;
+  vertical-align:text-top;
+  line-height:1;
+  flex-shrink:0;
+}
+
+.help-icon:hover{
+  background:rgba(126, 168, 255, 0.3);
+  color:var(--accent);
+  transform:scale(1.1);
+}
+
+/* Tooltip bubble */
+.help-icon::before{
+  content:attr(data-tooltip);
+  position:absolute;
+  bottom:100%;
+  left:50%;
+  transform:translateX(-50%) translateY(-8px);
+  padding:10px 14px;
+  background:var(--panel);
+  border:1px solid var(--accent);
+  border-radius:8px;
+  color:var(--text);
+  font-size:11px;
+  font-weight:normal;
+  white-space:normal;
+  width:max-content;
+  max-width:320px;
+  min-width:200px;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 0.3s,transform 0.3s;
+  box-shadow:0 4px 12px rgba(0,0,0,0.2);
+  z-index:1000;
+  line-height:1.4;
+}
+
+/* Tooltip arrow */
+.help-icon::after{
+  content:'';
+  position:absolute;
+  bottom:100%;
+  left:50%;
+  transform:translateX(-50%) translateY(2px);
+  width:0;
+  height:0;
+  border-left:6px solid transparent;
+  border-right:6px solid transparent;
+  border-top:6px solid var(--panel);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 0.3s;
+  z-index:1001;
+}
+
+/* Show tooltip on hover */
+.help-icon:hover::before{
+  opacity:1;
+  transform:translateX(-50%) translateY(-12px);
+}
+
+.help-icon:hover::after{
+  opacity:1;
+}
+/* Text inputs and selects */
+.controls input[type="text"],
+.controls input[type="number"],
+.controls select{
+  background:var(--input-bg);
+  border:1px solid var(--border);
+  color:var(--text);
+  padding:8px;
+  border-radius:10px;
+}
+/* Two-column grid for form elements */
+.grid-2{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+/* ========================================
+   COLLAPSIBLE SECTIONS
+   ========================================
+   Expandable details for parameters and info
+*/
+.details{
+  margin-top:12px;
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:12px;
+  background:var(--input-bg);
+}
+
+.details summary{
+  cursor:pointer;
+  color:var(--muted);
+}
+/* ========================================
+   RANGE SLIDERS
+   ========================================
+   Custom styled range inputs for parameter control
+*/
+.sliders .field{
+  margin:12px 0;
+}
+
+/* Parameter groups */
+.param-group{
+  margin:16px 0;
+  padding:12px;
+  background:rgba(0,0,0,0.1);
+  border-radius:8px;
+  border-left:3px solid var(--accent);
+}
+
+.param-group:first-child{
+  margin-top:8px;
+}
+
+.group-title{
+  margin:0 0 12px 0;
+  font-size:13px;
+  font-weight:600;
+  color:var(--text);
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+.param-group .sliders{
+  margin-top:8px;
+}
+
+.param-group .sliders .field{
+  margin:8px 0;
+}
+
+/* Range input track */
+input[type="range"]{
+  width:100%;
+  height:6px;
+  border-radius:3px;
+  background:var(--border);
+  outline:none;
+  -webkit-appearance:none;
+}
+
+/* Webkit slider thumb (Chrome, Safari, Edge) */
+input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  width:16px;
+  height:16px;
+  border-radius:50%;
+  background:var(--accent);
+  cursor:pointer;
+  transition:all 0.2s;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover{
+  transform:scale(1.2);
+  box-shadow:0 0 8px rgba(126,168,255,0.4);
+}
+
+/* Firefox slider thumb */
+input[type="range"]::-moz-range-thumb{
+  width:16px;
+  height:16px;
+  border-radius:50%;
+  background:var(--accent);
+  cursor:pointer;
+  border:none;
+  transition:all 0.2s;
+}
+
+input[type="range"]::-moz-range-thumb:hover{
+  transform:scale(1.2);
+  box-shadow:0 0 8px rgba(126,168,255,0.4);
+}
+/* ========================================
+   BUTTON GROUPS AND ACTIONS
+   ========================================
+   Organized button sections with visual hierarchy
+*/
+.action-section{
+  margin:16px 0;
+  padding:12px 0;
+  border-top:1px solid var(--border);
+}
+
+.action-section:first-of-type{
+  border-top:none;
+  margin-top:8px;
+}
+
+.section-label{
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+  color:var(--muted);
+  margin-bottom:8px;
+  font-weight:600;
+}
+
+.btn-group{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+/* Base button styling */
+.btn{
+  background:var(--input-hover);
+  border:1px solid var(--border);
+  color:var(--text);
+  padding:8px 14px;
+  border-radius:8px;
+  cursor:pointer;
+  font-size:13px;
+  transition:all 0.2s ease;
+  display:inline-flex;
+  align-items:center;
+  gap:6px; /* Space between icon and text */
+}
+
+.btn:hover{
+  transform:translateY(-1px); /* Lift effect */
+  box-shadow:0 2px 8px rgba(0,0,0,0.15);
+}
+
+.btn:active{
+  transform:translateY(0); /* Press down effect */
+}
+
+/* Primary button (main action) */
+.btn.primary{
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:white;
+  font-weight:600;
+  border:none;
+  box-shadow:0 2px 12px rgba(126,168,255,0.3);
+}
+
+.btn.primary:hover{
+  box-shadow:0 4px 20px rgba(126,168,255,0.5);
+}
+
+/* Large button variant */
+.btn.large{
+  padding:12px 24px;
+  font-size:14px;
+  flex:1;
+}
+
+/* Secondary button (outline style) */
+.btn.secondary{
+  background:var(--panel);
+  border:2px solid var(--accent);
+  color:var(--accent);
+  font-weight:500;
+}
+
+.btn.secondary:hover{
+  background:var(--accent);
+  color:white;
+}
+/* ========================================
+   PREVIEW SECTION
+   ========================================
+   Canvas display and readability meters
+*/
+.preview .canvas-wrap{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:var(--input-bg);
+  border:2px solid var(--border);
+  border-radius:12px;
+  height:230px;
+  margin-bottom:16px;
+  overflow:hidden;
+  box-shadow:inset 0 2px 4px rgba(0,0,0,0.1); /* Inset shadow */
+}
+/* Readability meters grid */
+.meters{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+
+/* Individual meter styling */
+.meter{
+  background:var(--input-bg);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:10px;
+}
+
+/* Meter header with label and value */
+.meter-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:14px;
+  color:var(--muted);
+}
+
+.meter-label{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+
+.meter-head strong{
+  color:var(--text);
+}
+
+/* Progress bar container */
+.meter-bar{
+  height:12px;
+  background:var(--border);
+  border-radius:8px;
+  overflow:hidden;
+  margin-top:6px;
+}
+
+/* Progress bar fill (good readability) */
+.meter-bar>div{
+  height:100%;
+  width:0; /* Animated by JavaScript */
+  background:linear-gradient(90deg,var(--accent2),#a7f3d0);
+}
+
+/* Danger variant for bot readability */
+.meter-bar.danger>div{
+  background:linear-gradient(90deg,#ffb3b3,var(--danger));
+}
+/* ========================================
+   LAYER PREVIEWS
+   ========================================
+   Step-by-step rendering process visualization
+*/
+.layer-previews{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  margin:12px 0;
+}
+
+.layer-step{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:8px;
+  background:rgba(0,0,0,0.1);
+  border-radius:8px;
+  transition:background-color 0.2s;
+}
+
+.layer-step:hover{
+  background:rgba(0,0,0,0.15);
+}
+
+.layer-info{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+  flex:1;
+}
+
+.layer-number{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  background:var(--accent);
+  color:white;
+  font-size:11px;
+  font-weight:bold;
+  flex-shrink:0;
+}
+
+.layer-title{
+  font-size:12px;
+  color:var(--text);
+  font-weight:500;
+}
+
+.layer-canvas{
+  border:1px solid var(--border);
+  border-radius:4px;
+  background:var(--input-bg);
+  flex-shrink:0;
+  image-rendering:pixelated; /* Keep crisp pixels when scaled */
+}
+
+/* ========================================
+   INFORMATIONAL CONTENT
+   ========================================
+   Lists, notes, and descriptive text
+*/
+.layers{
+  margin:.5rem 0 .25rem 1.1rem;
+}
+
+.layers li{
+  margin:.2rem 0;
+}
+
+.note{
+  color:var(--muted);
+  font-size:12px;
+  margin-top:4px;
+}
+/* ========================================
+   FOOTER AND LINKS
+   ========================================
+*/
+footer .footer{
+  max-width:1100px;
+  margin:18px auto 40px;
+  padding:0 16px;
+  color:var(--muted);
+  text-align:center;
+}
+
+/* Link styling */
+a{
+  color:var(--accent);
+  text-decoration:none;
+}
+
+a:hover{
+  text-decoration:underline;
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ========================================
+   Mobile and tablet adaptations
+*/
+@media (max-width: 980px){
+  .container{
+    grid-template-columns:1fr; /* Stack panels vertically on narrow screens */
+  }
+}
