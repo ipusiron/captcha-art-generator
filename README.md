@@ -1,11 +1,37 @@
 <!--
 ---
-title: CAPTCHA Art Generator
-category: web-security
-difficulty: 1
-description: Generate CAPTCHA-style images as “art” to teach the trade-off between human readability and bot resistance.
-tags: [captcha, visualization, education, javascript, canvas]
-demo: https://ipusiron.github.io/captcha-art-generator/
+id: day075
+slug: captcha-art-generator
+
+title: "CAPTCHA Art Generator"
+
+subtitle_ja: "CAPTCHAアート生成ツール"
+subtitle_en: "CAPTCHA Art Generator"
+
+description_ja: "入力文字列をCAPTCHA風に歪ませ、ノイズを加えた「アート的な画像」に変換する教育ツール。人間可読性と機械可読性のトレードオフを体験できる。"
+description_en: "An educational tool that transforms input text into CAPTCHA-style distorted images with noise. Experience the trade-off between human readability and bot resistance."
+
+category_ja:
+  - Webセキュリティ
+  - セキュリティ・アート
+category_en:
+  - Web Security
+  - Security Art
+
+difficulty: 2
+
+tags:
+  - captcha
+  - visualization
+  - education
+  - javascript
+  - canvas
+  - ocr
+
+repo_url: "https://github.com/ipusiron/captcha-art-generator"
+demo_url: "https://ipusiron.github.io/captcha-art-generator/"
+
+hub: true
 ---
 -->
 
