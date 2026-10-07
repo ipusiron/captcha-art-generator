@@ -40,11 +40,31 @@
     // Canvas receives text, not HTML. Preserve punctuation and whole code points.
     return Array.from(text.replace(/[\x00-\x1f\x7f-\x9f]/g, '')).slice(0, 32).join('');
   }
+  // Version 1 shares a stream. Version 2 gives each stage a stable domain seed.
+  // These constants and the derivation are part of the rendering format.
+  function stageRandom(seed, rendererVersion = 2) {
+    if (![1, 2].includes(rendererVersion)) throw new Error('invalidSettings');
+    const shared = mulberry32(seed);
+    const salts = {background: 0x243F6A88, text: 0x85A308D3, warp: 0x13198A2E,
+      noise: 0x03707344, lines: 0xA4093822};
+    return Object.fromEntries(Object.entries(salts).map(([name, salt]) =>
+      [name, rendererVersion === 1 ? shared : mulberry32((seed ^ salt) >>> 0)]));
+  }
+  function blurScale(value) { return Math.max(.7, Math.min(1, 1 - value * .15)); }
+  function diffSettings(before, after) {
+    const a = validateSettings(before), b = validateSettings(after);
+    return ['text', 'font', 'rendererVersion', ...KEYS].flatMap(key => {
+      const left = key === 'rendererVersion' ? a[key] ?? 1 : a[key];
+      const right = key === 'rendererVersion' ? b[key] ?? 1 : b[key];
+      return left === right ? [] : [{key, before: left, after: right}];
+    });
+  }
   function validateSettings(input) {
     if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('invalidSettings');
-    const allowed = [...KEYS, 'text', 'font', 'preset', 'timestamp', 'version'];
+    const allowed = [...KEYS, 'text', 'font', 'preset', 'timestamp', 'version', 'rendererVersion'];
     if (Object.keys(input).some(key => !allowed.includes(key))) throw new Error('invalidSettings');
     if (input.version !== undefined && input.version !== 1) throw new Error('invalidSettings');
+    if (input.rendererVersion !== undefined && ![1, 2].includes(input.rendererVersion)) throw new Error('invalidSettings');
     if (typeof input.text !== 'string' || input.text !== normalizeText(input.text)) throw new Error('invalidSettings');
     if (!FONTS.includes(input.font)) throw new Error('invalidSettings');
     if (typeof input.preset !== 'string' ||
@@ -53,12 +73,14 @@
       throw new Error('invalidSettings');
     }
     const result = {version: 1, text: input.text, font: input.font, preset: input.preset};
+    if (input.rendererVersion !== undefined) result.rendererVersion = input.rendererVersion;
     for (const key of KEYS) {
       const value = input[key], [min, max] = RANGES[key];
       if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max) throw new Error('invalidSettings');
       if (['lines', 'seed'].includes(key) && !Number.isInteger(value)) throw new Error('invalidSettings');
       result[key] = value;
     }
+    if (result.rendererVersion === 2 && result.blur > 2) throw new Error('invalidSettings');
     // Preset is a label, not an instruction to overwrite the supplied values.
     if (result.preset !== 'custom') {
       const expected = preset(result.preset);
@@ -98,9 +120,10 @@
         previous = value;
       }
     }
-    return {mean, threshold, inverted, selected, total, occupancy: selected / total, transitions, runs};
+    return {mean, threshold, inverted, selected, total, occupancy: selected / total, transitions, runs, mask};
   }
-  const api = {LIMIT_BYTES, FONTS, PRESETS, RANGES, preset, mulberry32, normalizeText, validateSettings, parseSettings, analyzePixels};
+  const api = {LIMIT_BYTES, FONTS, PRESETS, RANGES, preset, mulberry32, stageRandom, blurScale,
+    diffSettings, normalizeText, validateSettings, parseSettings, analyzePixels};
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.ArtCore = api;
 })(globalThis);

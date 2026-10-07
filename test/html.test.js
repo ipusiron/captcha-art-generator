@@ -26,3 +26,15 @@ test('statistics have no readability score, and help is keyboard accessible', ()
   assert.match(html, /role="status" aria-live="polite"/);
   assert.doesNotMatch(html, /hrVal|brVal|Human Readability|Bot Readability|help-icon/);
 });
+test('comparison and mask controls have semantic labels and mobile-safe structure', () => {
+  assert.match(html, /<select id="rendererVersion">/);
+  assert.match(html, /value="2"[^>]*selected/);
+  for (const id of ['pinComparison', 'clearComparison']) assert.match(html, new RegExp('<button id="' + id + '"'));
+  for (const id of ['maskCanvas', 'beforeCanvas', 'afterCanvas']) {
+    assert.match(html, new RegExp('<canvas id="' + id + '"[^>]*data-i18n-aria=', 's'));
+  }
+  assert.match(html, /id="comparisonContent" hidden/);
+  const css = fs.readFileSync('style.css', 'utf8');
+  assert.match(css, /\.comparison-images[^}]+minmax\(0, 1fr\)/);
+  assert.match(css, /\.comparison-table-wrap[^}]+overflow-x:auto/);
+});
