@@ -47,7 +47,8 @@
     if (input.version !== undefined && input.version !== 1) throw new Error('invalidSettings');
     if (typeof input.text !== 'string' || input.text !== normalizeText(input.text)) throw new Error('invalidSettings');
     if (!FONTS.includes(input.font)) throw new Error('invalidSettings');
-    if (input.preset !== 'custom' && !Object.hasOwn(PRESETS, input.preset)) throw new Error('invalidSettings');
+    if (typeof input.preset !== 'string' ||
+        (input.preset !== 'custom' && !Object.hasOwn(PRESETS, input.preset))) throw new Error('invalidSettings');
     if (input.timestamp !== undefined && (typeof input.timestamp !== 'string' || !Number.isFinite(Date.parse(input.timestamp)))) {
       throw new Error('invalidSettings');
     }

@@ -207,6 +207,11 @@ function applyPreset(name) {
  * Stages: Background → Text → Warp → Noise → Lines → Blur → Contrast
  */
 function render(){
+  if (composing) {
+    clearOutput();
+    showStatus('composing');
+    return;
+  }
   document.querySelectorAll('input[type="range"]').forEach(input => {
     let output = document.getElementById(input.id + 'Output');
     if (!output) {
@@ -226,7 +231,7 @@ function render(){
   }
   const rng = ArtCore.mulberry32(seed);
   const text = sanitizeText(refs.text.value);
-  refs.text.value = text;
+  if (refs.text.value !== text) refs.text.value = text;
   if (!text.trim()) {
     clearOutput();
     showStatus('empty');
@@ -627,6 +632,7 @@ function loadParams(params) {
 }
 
 let revision = 0;
+let composing = false;
 function invalidateImport() { revision++; }
 async function handleFileLoad(event) {
   const file = event.target.files[0];
@@ -672,6 +678,16 @@ refs.btnSVG.addEventListener('click', downloadSVG);
 refs.btnParams.addEventListener('click', downloadParams);
 refs.btnLoadParams.addEventListener('click', () => { invalidateImport(); refs.fileInput.click(); });
 refs.fileInput.addEventListener('change', handleFileLoad);
+refs.text.addEventListener('compositionstart', () => {
+  composing = true;
+  invalidateImport();
+  render();
+});
+refs.text.addEventListener('compositionend', () => {
+  composing = false;
+  invalidateImport();
+  render();
+});
 [refs.text, refs.font, ...Object.values(paramRefs).map(key => refs[key])].forEach(el => {
   el.addEventListener('input', () => {
     invalidateImport();

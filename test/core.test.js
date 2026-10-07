@@ -39,7 +39,8 @@ for (const key of Object.keys(core.RANGES)) {
 }
 test('rejects missing fields, unknown fields, arrays, versions and invalid strings', () => {
   for (const value of [null, [], {}, {...settings(), font: 'url(x)'}, {...settings(), text: '😀'.repeat(33)},
-    {...settings(), seed: 1.9}, {...settings(), lines: .5}, {...settings(), version: 2}, {...settings(), extra: 1}]) {
+    {...settings(), preset: ['classic']}, {...settings(), seed: 1.9}, {...settings(), lines: .5},
+    {...settings(), version: 2}, {...settings(), extra: 1}]) {
     assert.throws(() => core.validateSettings(value));
   }
   assert.throws(() => core.parseSettings('{'));
