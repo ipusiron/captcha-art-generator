@@ -23,8 +23,7 @@
 // Handles light/dark theme switching with localStorage persistence
 const themeToggle = document.getElementById('themeToggle');
 const themeIcon = document.querySelector('.theme-icon');
-let savedTheme = 'light';
-try { savedTheme = localStorage.getItem('theme') === 'dark' ? 'dark' : 'light'; } catch { /* Optional storage. */ }
+const savedTheme = document.documentElement.dataset.theme || 'light';
 
 function setTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
@@ -33,6 +32,11 @@ function setTheme(theme) {
 }
 
 setTheme(savedTheme);
+
+document.getElementById('helpToggle').addEventListener('click', event => {
+  const open = document.documentElement.classList.toggle('show-help');
+  event.currentTarget.setAttribute('aria-expanded', String(open));
+});
 
 themeToggle.addEventListener('click', () => {
   const currentTheme = document.documentElement.getAttribute('data-theme');
@@ -160,15 +164,15 @@ const refs = {
   layer6: document.getElementById('layer6'),
   layer7: document.getElementById('layer7'),
 };
-const ctx = refs.canvas.getContext('2d');
+const ctx = refs.canvas.getContext('2d', {willReadFrequently: true});
 
 // Offscreen canvas buffers for multi-pass rendering
 // buf1: Primary working buffer for compositing
 // buf2: Secondary buffer for text rendering before warp
 const buf1 = document.createElement('canvas');
-const b1 = buf1.getContext('2d');
+const b1 = buf1.getContext('2d', {willReadFrequently: true});
 const buf2 = document.createElement('canvas');
-const b2 = buf2.getContext('2d');
+const b2 = buf2.getContext('2d', {willReadFrequently: true});
 
 /**
  * Set canvas dimensions for all rendering surfaces
@@ -193,7 +197,7 @@ setCanvasSize();
 function captureLayer(sourceCanvas, targetCanvas) {
   if (!sourceCanvas || !targetCanvas) return;
 
-  const targetCtx = targetCanvas.getContext('2d');
+  const targetCtx = targetCanvas.getContext('2d', {willReadFrequently: true});
   const sourceW = sourceCanvas.width;
   const sourceH = sourceCanvas.height;
   const targetW = targetCanvas.width;
@@ -522,7 +526,7 @@ function render(){
     const tmp = document.createElement('canvas');
     tmp.width = Math.max(1, Math.floor(W*scale));
     tmp.height = Math.max(1, Math.floor(H*scale));
-    const tctx = tmp.getContext('2d');
+    const tctx = tmp.getContext('2d', {willReadFrequently: true});
 
     // Downscale image to temporary canvas
     tctx.drawImage(buf1, 0,0, W,H, 0,0, tmp.width, tmp.height);
@@ -582,7 +586,7 @@ function showStatus(key) {
 
 function clearOutput() {
   [refs.canvas, buf1, buf2, ...Array.from({length: 7}, (_, i) => refs['layer' + (i + 1)])].forEach(canvas => {
-    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+    canvas.getContext('2d', {willReadFrequently: true}).clearRect(0, 0, canvas.width, canvas.height);
   });
   ['occupancy', 'transitions', 'runs', 'threshold'].forEach(id => {
     document.getElementById(id + 'Val').textContent = '—';

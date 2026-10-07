@@ -4,28 +4,29 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
 
-  <!-- Security Headers -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';" />
-  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
-  <meta http-equiv="X-Frame-Options" content="DENY" />
-  <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
-  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self';
+    img-src 'self' data: blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none';" />
+  <meta name="referrer" content="no-referrer" />
+  <link rel="icon" href="data:," />
+  <script src="./js/preferences.js"></script>
 
   <title>CAPTCHA Art Generator</title>
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
   <header class="header">
-    <button id="themeToggle" class="theme-toggle" aria-label="テーマ切り替え">
-      <span class="theme-icon">🌙</span>
-    </button>
     <h1>CAPTCHA Art Generator</h1>
-    <p class="subtitle">人間可読性と機械可読性のトレードオフを体験する教材ツール</p>
+    <p class="subtitle">文字の加工と画像の特徴を観察する教材ツール</p>
+    <div class="header-actions">
+      <button id="themeToggle" class="theme-toggle" aria-label="テーマ切り替え"><span class="theme-icon">🌙</span></button>
+    </div>
+    <noscript>JavaScriptを有効にしてください。 / Please enable JavaScript.</noscript>
   </header>
 
   <main class="container">
     <section class="panel controls">
       <h2>コントロール</h2>
+      <button id="helpToggle" class="btn" aria-expanded="false">説明を表示</button>
 
       <label class="field">
         <span>テキスト</span>
@@ -60,60 +61,60 @@
         <summary>歪み・ノイズ調整</summary>
 
         <div class="param-group">
-          <h4 class="group-title">🌊 文字の歪み</h4>
+          <h3 class="group-title">🌊 文字の歪み</h3>
           <div class="sliders">
             <label class="field">
-              <span>波形 振幅 (px) <span class="help-icon" data-tooltip="文字の歪みの大きさ。高いほど波打つように歪み、読みにくくなる">?</span></span>
+              <span>波形 振幅 (px) <span class="help-text">文字の歪みの大きさ。高いほど波打つように歪み、読みにくくなる</span></span>
               <input id="amp" type="range" min="0" max="40" value="12" />
             </label>
             <label class="field">
-              <span>波形 周期 (px) <span class="help-icon" data-tooltip="歪みの波の間隔。小さいほど細かく波打ち、大きいほどゆったりした歪みになる">?</span></span>
+              <span>波形 周期 (px) <span class="help-text">歪みの波の間隔。小さいほど細かく波打ち、大きいほどゆったりした歪みになる</span></span>
               <input id="lambda" type="range" min="20" max="160" value="80" />
             </label>
           </div>
         </div>
 
         <div class="param-group">
-          <h4 class="group-title">📝 文字の配置</h4>
+          <h3 class="group-title">📝 文字の配置</h3>
           <div class="sliders">
             <label class="field">
-              <span>回転ばらつき (°) <span class="help-icon" data-tooltip="各文字の回転角度のランダム性。高いほど文字がバラバラに傾き、整列感が失われる">?</span></span>
+              <span>回転ばらつき (°) <span class="help-text">各文字の回転角度のランダム性。高いほど文字がバラバラに傾き、整列感が失われる</span></span>
               <input id="rotJitter" type="range" min="0" max="20" value="6" />
             </label>
             <label class="field">
-              <span>字間 (px) <span class="help-icon" data-tooltip="文字同士の間隔。マイナスで重なり、プラスで離れる。OCRの難易度に影響">?</span></span>
+              <span>字間 (px) <span class="help-text">文字同士の間隔。マイナスで重なり、プラスで離れる</span></span>
               <input id="spacing" type="range" min="-5" max="20" value="4" />
             </label>
           </div>
         </div>
 
         <div class="param-group">
-          <h4 class="group-title">🔥 妨害要素</h4>
+          <h3 class="group-title">🔥 妨害要素</h3>
           <div class="sliders">
             <label class="field">
-              <span>ノイズ密度 (0–1) <span class="help-icon" data-tooltip="ランダムな点の密度。高いほど画像全体にノイズが増え、文字認識を妨害する">?</span></span>
+              <span>ノイズ密度 (0–1) <span class="help-text">ランダムな点の密度。高いほど画像全体にノイズが増え</span></span>
               <input id="noise" type="range" min="0" max="1" value="0.2" step="0.02" />
             </label>
             <label class="field">
-              <span>線の本数 <span class="help-icon" data-tooltip="文字を横切る妨害線の数。多いほど文字が隠れやすくなり、認識難度が上がる">?</span></span>
+              <span>線の本数 <span class="help-text">文字を横切る妨害線の数。多いほど文字が隠れやすくなり</span></span>
               <input id="lines" type="range" min="0" max="20" value="6" />
             </label>
           </div>
         </div>
 
         <div class="param-group">
-          <h4 class="group-title">🎨 見た目の調整</h4>
+          <h3 class="group-title">🎨 見た目の調整</h3>
           <div class="sliders">
             <label class="field">
-              <span>ぼかし (px) <span class="help-icon" data-tooltip="画像全体のぼかし具合。高いほど輪郭が曖昧になり、人間にも機械にも読みにくくなる">?</span></span>
+              <span>ぼかしの強さ <span class="help-text">画像全体のぼかし具合。縮小して拡大する加工の強さ。値はガウスぼかしの半径ではない</span></span>
               <input id="blur" type="range" min="0" max="3" value="0.5" step="0.1" />
             </label>
             <label class="field">
-              <span>前景/背景コントラスト <span class="help-icon" data-tooltip="文字と背景の明暗差。低いと薄く見えにくく、高いとくっきりして読みやすくなる">?</span></span>
+              <span>明るさ補正 <span class="help-text">文字の明るさと最終画像のガンマ補正を同時に変える。コントラスト比の測定値ではない</span></span>
               <input id="contrast" type="range" min="0.2" max="1.2" value="0.9" step="0.05" />
             </label>
             <label class="field">
-              <span>文字色変化 (0–1) <span class="help-icon" data-tooltip="文字ごとの色のばらつき。高いほど各文字が異なる色相になり、カラフルになる">?</span></span>
+              <span>文字色変化 (0–1) <span class="help-text">文字ごとの色のばらつき。高いほど各文字が異なる色相になり、カラフルになる</span></span>
               <input id="colorVariation" type="range" min="0" max="1" value="0" step="0.05" />
             </label>
           </div>
@@ -124,23 +125,23 @@
         <summary>背景・テクスチャ調整</summary>
         <div class="sliders">
           <label class="field">
-            <span>背景の明度 (0–1) <span class="help-icon" data-tooltip="背景色の明るさ。高いほど背景が明るくなり、文字との対比が変化する">?</span></span>
+            <span>背景の明度 (0–1) <span class="help-text">背景色の明るさ。高いほど背景が明るくなり、文字との対比が変化する</span></span>
             <input id="bgBrightness" type="range" min="0" max="1" value="0.3" step="0.05" />
           </label>
           <label class="field">
-            <span>背景色相 (0–360°) <span class="help-icon" data-tooltip="背景色の色相。0=赤、120=緑、240=青。様々な色の背景を選択可能">?</span></span>
+            <span>背景色相 (0–360°) <span class="help-text">背景色の色相。0=赤、120=緑、240=青。様々な色の背景を選択可能</span></span>
             <input id="bgHue" type="range" min="0" max="360" value="240" step="10" />
           </label>
           <label class="field">
-            <span>粒子密度 (0–1) <span class="help-icon" data-tooltip="背景テクスチャの粒子数。高いほど紙の質感が粗くなる">?</span></span>
+            <span>粒子密度 (0–1) <span class="help-text">背景テクスチャの粒子数。高いほど紙の質感が粗くなる</span></span>
             <input id="grainDensity" type="range" min="0" max="1" value="0.5" step="0.05" />
           </label>
           <label class="field">
-            <span>粒子明度 (0–1) <span class="help-icon" data-tooltip="背景粒子の明るさ。高いほど粒子がはっきりと見え、紙質感が強くなる">?</span></span>
+            <span>粒子明度 (0–1) <span class="help-text">背景粒子の明るさ。高いほど粒子がはっきりと見え、紙質感が強くなる</span></span>
             <input id="grainBrightness" type="range" min="0" max="1" value="0.8" step="0.05" />
           </label>
           <label class="field">
-            <span>Seed <span class="help-icon" data-tooltip="乱数シード値。同じ値なら同じランダム配置が再現される。再現性の確保に使用">?</span></span>
+            <span>Seed <span class="help-text">乱数シード値。同じ設定、ブラウザー、フォント環境で再現するための値。0〜1000000000の整数</span></span>
             <input id="seed" type="number" value="12345" min="0" max="1000000000" step="1" />
           </label>
         </div>
@@ -167,7 +168,7 @@
         <div class="btn-group">
           <button id="btnDownloadParams" class="btn">💾 設定を保存</button>
           <button id="btnLoadParams" class="btn">📂 設定を読込</button>
-          <input type="file" id="fileInput" accept=".json" style="display:none">
+          <input type="file" id="fileInput" accept=".json" hidden>
         </div>
       </div>
     </section>
@@ -176,7 +177,7 @@
       <h2>プレビュー</h2>
       <p id="status" role="status" aria-live="polite"></p>
       <div class="canvas-wrap">
-        <canvas id="canvas" width="640" height="200"></canvas>
+        <canvas id="canvas" width="640" height="200" aria-label="生成画像"></canvas>
       </div>
 
       <section class="statistics" aria-labelledby="statisticsTitle">
@@ -203,49 +204,49 @@
           <div class="layer-step">
             <div class="layer-info">
               <span class="layer-number">1</span>
-              <span class="layer-title">下地（紙目/粒子/背景） <span class="help-icon" data-tooltip="背景の明度・背景色相・粒子密度・粒子明度・Seed で変化">?</span></span>
+              <span class="layer-title">下地（紙目/粒子/背景） <span class="help-text">背景の明度・背景色相・粒子密度・粒子明度・Seed で変化</span></span>
             </div>
             <canvas class="layer-canvas" id="layer1" width="160" height="50"></canvas>
           </div>
           <div class="layer-step">
             <div class="layer-info">
               <span class="layer-number">2</span>
-              <span class="layer-title">文字描画（フォント・回転ばらつき・字間） <span class="help-icon" data-tooltip="テキスト・フォント・回転ばらつき・字間・文字色変化・Seed で変化">?</span></span>
+              <span class="layer-title">文字描画（フォント・回転ばらつき・字間） <span class="help-text">テキスト・フォント・回転ばらつき・字間・文字色変化・Seed で変化</span></span>
             </div>
             <canvas class="layer-canvas" id="layer2" width="160" height="50"></canvas>
           </div>
           <div class="layer-step">
             <div class="layer-info">
               <span class="layer-number">3</span>
-              <span class="layer-title">ワープ（正弦2軸） <span class="help-icon" data-tooltip="波形振幅・波形周期・Seed で歪みパターンが変化">?</span></span>
+              <span class="layer-title">ワープ（正弦2軸） <span class="help-text">波形振幅・波形周期・Seed で歪みパターンが変化</span></span>
             </div>
             <canvas class="layer-canvas" id="layer3" width="160" height="50"></canvas>
           </div>
           <div class="layer-step">
             <div class="layer-info">
               <span class="layer-number">4</span>
-              <span class="layer-title">ノイズ（粒子） <span class="help-icon" data-tooltip="ノイズ密度・Seed でランダム粒子の配置と量が変化">?</span></span>
+              <span class="layer-title">ノイズ（粒子） <span class="help-text">ノイズ密度・Seed でランダム粒子の配置と量が変化</span></span>
             </div>
             <canvas class="layer-canvas" id="layer4" width="160" height="50"></canvas>
           </div>
           <div class="layer-step">
             <div class="layer-info">
               <span class="layer-number">5</span>
-              <span class="layer-title">交差線（直線/曲線） <span class="help-icon" data-tooltip="線の本数・Seed で妨害線の位置と形状が変化">?</span></span>
+              <span class="layer-title">交差線（直線/曲線） <span class="help-text">線の本数・Seed で妨害線の位置と形状が変化</span></span>
             </div>
             <canvas class="layer-canvas" id="layer5" width="160" height="50"></canvas>
           </div>
           <div class="layer-step">
             <div class="layer-info">
               <span class="layer-number">6</span>
-              <span class="layer-title">ぼかし <span class="help-icon" data-tooltip="ぼかし の値で画像全体のシャープネスが変化">?</span></span>
+              <span class="layer-title">ぼかし <span class="help-text">ぼかし の値で画像全体のシャープネスが変化</span></span>
             </div>
             <canvas class="layer-canvas" id="layer6" width="160" height="50"></canvas>
           </div>
           <div class="layer-step">
             <div class="layer-info">
               <span class="layer-number">7</span>
-              <span class="layer-title">コントラスト調整（最終結果） <span class="help-icon" data-tooltip="前景/背景コントラスト で明暗差が調整された最終画像">?</span></span>
+              <span class="layer-title">コントラスト調整（最終結果） <span class="help-text">前景/背景コントラスト で明暗差が調整された最終画像</span></span>
             </div>
             <canvas class="layer-canvas" id="layer7" width="160" height="50"></canvas>
           </div>
@@ -258,7 +259,7 @@
   <footer>
     <div class="footer">
       🔗 GitHubリポジトリはこちら（
-      <a href="https://github.com/ipusiron/captcha-art-generator" target="_blank">ipusiron/captcha-art-generator</a>
+      <a href="https://github.com/ipusiron/captcha-art-generator" target="_blank" rel="noopener noreferrer">ipusiron/captcha-art-generator</a>
       ）
     </div>
   </footer>

@@ -14,6 +14,7 @@
   --danger:#ff8a8a;       /* Danger/warning - red */
   --border:#242a55;       /* Border color - dark blue */
   --input-bg:#0e1330;     /* Input background - darker blue */
+  --button-text:#0f1220;
   --input-hover:#22285a;  /* Input hover state - medium blue */
 }
 
@@ -26,12 +27,13 @@
   --bg:#f7f8fa;          /* Light gray background */
   --panel:#ffffff;        /* White panels */
   --text:#1a1f36;         /* Dark blue text */
-  --muted:#64748b;        /* Gray muted text */
+  --muted:#475569;        /* Gray muted text */
   --accent:#2563eb;       /* Blue accent */
   --accent2:#10b981;      /* Green accent */
   --danger:#ef4444;       /* Red danger */
   --border:#e2e8f0;       /* Light gray border */
   --input-bg:#f1f5f9;     /* Light input background */
+  --button-text:#ffffff;
   --input-hover:#e2e8f0;  /* Light input hover */
 }
 /* ========================================
@@ -45,9 +47,7 @@
    Floating theme switcher positioned relative to content area
 */
 .theme-toggle{
-  position:absolute;
-  top:20px;
-  right:calc((100vw - 1100px)/2 + 16px); /* Align with content right edge */
+  position:static;
   background:var(--panel);
   border:1px solid var(--border);
   color:var(--text);
@@ -61,11 +61,6 @@
   justify-content:center;
   transition:all 0.3s ease;
   z-index:100;
-}
-
-/* Responsive positioning for narrow screens */
-@media (max-width: 1132px){
-  .theme-toggle{right:32px}
 }
 
 .theme-toggle:hover{
@@ -119,9 +114,9 @@ html,body{
 */
 .container{
   display:grid;
-  grid-template-columns:360px 1fr; /* Fixed sidebar, flexible preview */
+  grid-template-columns:minmax(0, 1fr);
   gap:16px;
-  max-width:1100px;
+  max-width:1200px;
   padding:16px;
   margin:0 auto;
 }
@@ -131,6 +126,7 @@ html,body{
    Reusable panel styling for controls and preview
 */
 .panel{
+  min-width:0;
   background:var(--panel);
   border:1px solid var(--border);
   border-radius:16px;
@@ -154,12 +150,10 @@ html,body{
 }
 
 .controls .field span{
-  font-size:12px;
+  font-size:14px;
   color:var(--muted);
   margin-bottom:6px;
-  display:flex;
-  align-items:center;
-  gap:4px; /* Space between label and help icon */
+  display:block;
 }
 
 /* ========================================
@@ -167,84 +161,14 @@ html,body{
    ========================================
    Interactive help icons with hover tooltips
 */
-.help-icon{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  width:14px;
-  height:14px;
-  border-radius:50%;
-  background:var(--border);
-  color:var(--muted);
-  font-size:9px;
-  font-weight:bold;
-  cursor:help;
-  position:relative;
-  transition:all 0.2s;
-  margin-left:4px;
-  vertical-align:text-top;
-  line-height:1;
-  flex-shrink:0;
+.help-text, .controls .field .help-text {
+  display:none;
+  margin:6px 0;
+  font-size:14px;
+  line-height:1.5;
 }
-
-.help-icon:hover{
-  background:rgba(126, 168, 255, 0.3);
-  color:var(--accent);
-  transform:scale(1.1);
-}
-
-/* Tooltip bubble */
-.help-icon::before{
-  content:attr(data-tooltip);
-  position:absolute;
-  bottom:100%;
-  left:50%;
-  transform:translateX(-50%) translateY(-8px);
-  padding:10px 14px;
-  background:var(--panel);
-  border:1px solid var(--accent);
-  border-radius:8px;
-  color:var(--text);
-  font-size:11px;
-  font-weight:normal;
-  white-space:normal;
-  width:max-content;
-  max-width:320px;
-  min-width:200px;
-  opacity:0;
-  pointer-events:none;
-  transition:opacity 0.3s,transform 0.3s;
-  box-shadow:0 4px 12px rgba(0,0,0,0.2);
-  z-index:1000;
-  line-height:1.4;
-}
-
-/* Tooltip arrow */
-.help-icon::after{
-  content:'';
-  position:absolute;
-  bottom:100%;
-  left:50%;
-  transform:translateX(-50%) translateY(2px);
-  width:0;
-  height:0;
-  border-left:6px solid transparent;
-  border-right:6px solid transparent;
-  border-top:6px solid var(--panel);
-  opacity:0;
-  pointer-events:none;
-  transition:opacity 0.3s;
-  z-index:1001;
-}
-
-/* Show tooltip on hover */
-.help-icon:hover::before{
-  opacity:1;
-  transform:translateX(-50%) translateY(-12px);
-}
-
-.help-icon:hover::after{
-  opacity:1;
+.show-help .help-text, .show-help .controls .field .help-text {
+  display:block;
 }
 /* Text inputs and selects */
 .controls input[type="text"],
@@ -254,12 +178,16 @@ html,body{
   border:1px solid var(--border);
   color:var(--text);
   padding:8px;
+  font-size:16px;
+  min-height:44px;
+  min-width:0;
+  width:100%;
   border-radius:10px;
 }
 /* Two-column grid for form elements */
 .grid-2{
   display:grid;
-  grid-template-columns:1fr 1fr;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
   gap:12px;
 }
 /* ========================================
@@ -322,18 +250,18 @@ html,body{
 /* Range input track */
 input[type="range"]{
   width:100%;
-  height:6px;
+  min-height:44px;
   border-radius:3px;
   background:var(--border);
-  outline:none;
+  accent-color:var(--accent);
   -webkit-appearance:none;
 }
 
 /* Webkit slider thumb (Chrome, Safari, Edge) */
 input[type="range"]::-webkit-slider-thumb{
   -webkit-appearance:none;
-  width:16px;
-  height:16px;
+  width:24px;
+  height:24px;
   border-radius:50%;
   background:var(--accent);
   cursor:pointer;
@@ -347,8 +275,8 @@ input[type="range"]::-webkit-slider-thumb:hover{
 
 /* Firefox slider thumb */
 input[type="range"]::-moz-range-thumb{
-  width:16px;
-  height:16px;
+  width:24px;
+  height:24px;
   border-radius:50%;
   background:var(--accent);
   cursor:pointer;
@@ -417,8 +345,8 @@ input[type="range"]::-moz-range-thumb:hover{
 
 /* Primary button (main action) */
 .btn.primary{
-  background:linear-gradient(135deg,var(--accent),var(--accent2));
-  color:white;
+  background:var(--accent);
+  color:var(--button-text);
   font-weight:600;
   border:none;
   box-shadow:0 2px 12px rgba(126,168,255,0.3);
@@ -445,7 +373,7 @@ input[type="range"]::-moz-range-thumb:hover{
 
 .btn.secondary:hover{
   background:var(--accent);
-  color:white;
+  color:var(--button-text);
 }
 /* ========================================
    PREVIEW SECTION
@@ -459,15 +387,15 @@ input[type="range"]::-moz-range-thumb:hover{
   background:var(--input-bg);
   border:2px solid var(--border);
   border-radius:12px;
-  height:230px;
+  min-height:100px;
+  padding:8px;
   margin-bottom:16px;
-  overflow:hidden;
   box-shadow:inset 0 2px 4px rgba(0,0,0,0.1); /* Inset shadow */
 }
 /* Readability meters grid */
 .meters{
   display:grid;
-  grid-template-columns:1fr 1fr;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
   gap:10px;
 }
 
@@ -576,6 +504,8 @@ input[type="range"]::-moz-range-thumb:hover{
   border:1px solid var(--border);
   border-radius:4px;
   background:var(--input-bg);
+  max-width:100%;
+  height:auto;
   flex-shrink:0;
   image-rendering:pixelated; /* Keep crisp pixels when scaled */
 }
@@ -625,8 +555,32 @@ a:hover{
    ========================================
    Mobile and tablet adaptations
 */
-@media (max-width: 980px){
-  .container{
-    grid-template-columns:1fr; /* Stack panels vertically on narrow screens */
-  }
+
+/* Mobile-first sizing and keyboard access. */
+html { line-height:1.5; overflow-wrap:anywhere; }
+.header-actions { display:flex; justify-content:center; gap:8px; margin-top:12px; }
+button, summary { min-height:44px; min-width:44px; font:inherit; cursor:pointer; }
+summary { padding:8px 0; }
+button:disabled { opacity:.6; cursor:not-allowed; }
+button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible, a:focus-visible {
+  outline:3px solid var(--accent);
+  outline-offset:3px;
+}
+.btn.primary:hover, .btn.secondary:hover { background:var(--accent); color:var(--button-text); }
+#canvas { display:block; max-width:100%; height:auto; }
+.statistics dt { font-size:14px; }
+.statistics dd { margin:4px 0 0; font-size:20px; font-weight:600; }
+.statistics p, .note { font-size:14px; }
+#status:empty { display:none; }
+#status { padding:10px; border:1px solid var(--accent); border-radius:8px; }
+.layer-step { flex-wrap:wrap; }
+.layer-info { flex-basis:100%; }
+@media (min-width:600px) {
+  .layer-info { flex-basis:0; }
+}
+@media (min-width:1000px) {
+  .container { grid-template-columns:340px minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion:reduce) {
+  *, *::before, *::after { transition:none !important; scroll-behavior:auto !important; }
 }
