@@ -4,37 +4,40 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
 
-  <!-- Security Headers -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';" />
-  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
-  <meta http-equiv="X-Frame-Options" content="DENY" />
-  <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
-  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self';
+    img-src 'self' data: blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none';" />
+  <meta name="referrer" content="no-referrer" />
+  <link rel="icon" href="data:," />
+  <script src="./js/preferences.js"></script>
 
   <title>CAPTCHA Art Generator</title>
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
   <header class="header">
-    <button id="themeToggle" class="theme-toggle" aria-label="テーマ切り替え">
-      <span class="theme-icon">🌙</span>
-    </button>
     <h1>CAPTCHA Art Generator</h1>
-    <p class="subtitle">人間可読性と機械可読性のトレードオフを体験する教材ツール</p>
+    <p class="subtitle"><span data-i18n="ui0">文字の加工と画像の特徴を観察する教材ツール</span></p>
+    <div class="header-actions">
+      <button id="languageToggle" class="btn" lang="en">English</button>
+      <button id="themeToggle" class="theme-toggle" aria-label="テーマ切り替え" data-i18n-aria="theme"><span class="theme-icon">🌙</span></button>
+    </div>
+    <noscript>JavaScriptを有効にしてください。 / Please enable JavaScript.</noscript>
   </header>
 
   <main class="container">
     <section class="panel controls">
-      <h2>コントロール</h2>
+      <h2><span data-i18n="ui1">コントロール</span></h2>
+      <button id="helpToggle" class="btn" aria-expanded="false"><span data-i18n="ui2">説明を表示</span></button>
 
       <label class="field">
-        <span>テキスト</span>
-        <input id="textInput" type="text" value="HELLO42" maxlength="32" />
+        <span><span data-i18n="ui3">テキスト</span></span>
+        <input id="textInput" type="text" value="HELLO42" maxlength="64" />
       </label>
 
+      <p class="note" data-i18n="textLimit">最大32文字（Unicodeコードポイント）。長い文字列は画像内に縮小します。</p>
       <div class="grid-2">
         <label class="field">
-          <span>フォント</span>
+          <span><span data-i18n="ui4">フォント</span></span>
           <select id="fontSelect">
             <option value="bold 48px 'Segoe UI', Arial">Sans Bold</option>
             <option value="bold 48px 'Courier New', monospace">Monospace</option>
@@ -44,8 +47,9 @@
         </label>
 
         <label class="field">
-          <span>プリセット</span>
+          <span><span data-i18n="ui5">プリセット</span></span>
           <select id="presetSelect">
+            <option value="custom" data-i18n="ui6">カスタム</option>
             <option value="classic">Classic</option>
             <option value="elastic">Elastic</option>
             <option value="grainy">Grainy</option>
@@ -56,63 +60,63 @@
       </div>
 
       <details class="details" open>
-        <summary>歪み・ノイズ調整</summary>
+        <summary><span data-i18n="ui7">歪み・ノイズ調整</span></summary>
 
         <div class="param-group">
-          <h4 class="group-title">🌊 文字の歪み</h4>
+          <h3 class="group-title"><span data-i18n="ui8">🌊 文字の歪み</span></h3>
           <div class="sliders">
             <label class="field">
-              <span>波形 振幅 (px) <span class="help-icon" data-tooltip="文字の歪みの大きさ。高いほど波打つように歪み、読みにくくなる">?</span></span>
+              <span><span data-i18n="ui9">波形 振幅 (px)</span><span class="help-text"><span data-i18n="ui10">文字の歪みの大きさ。高いほど波打つように歪み、読みにくくなる</span></span></span>
               <input id="amp" type="range" min="0" max="40" value="12" />
             </label>
             <label class="field">
-              <span>波形 周期 (px) <span class="help-icon" data-tooltip="歪みの波の間隔。小さいほど細かく波打ち、大きいほどゆったりした歪みになる">?</span></span>
+              <span><span data-i18n="ui11">波形 周期 (px)</span><span class="help-text"><span data-i18n="ui12">歪みの波の間隔。小さいほど細かく波打ち、大きいほどゆったりした歪みになる</span></span></span>
               <input id="lambda" type="range" min="20" max="160" value="80" />
             </label>
           </div>
         </div>
 
         <div class="param-group">
-          <h4 class="group-title">📝 文字の配置</h4>
+          <h3 class="group-title"><span data-i18n="ui13">📝 文字の配置</span></h3>
           <div class="sliders">
             <label class="field">
-              <span>回転ばらつき (°) <span class="help-icon" data-tooltip="各文字の回転角度のランダム性。高いほど文字がバラバラに傾き、整列感が失われる">?</span></span>
+              <span><span data-i18n="ui14">回転ばらつき (°)</span><span class="help-text"><span data-i18n="ui15">各文字の回転角度のランダム性。高いほど文字がバラバラに傾き、整列感が失われる</span></span></span>
               <input id="rotJitter" type="range" min="0" max="20" value="6" />
             </label>
             <label class="field">
-              <span>字間 (px) <span class="help-icon" data-tooltip="文字同士の間隔。マイナスで重なり、プラスで離れる。OCRの難易度に影響">?</span></span>
+              <span><span data-i18n="ui16">字間 (px)</span><span class="help-text"><span data-i18n="ui17">文字同士の間隔。マイナスで重なり、プラスで離れる</span></span></span>
               <input id="spacing" type="range" min="-5" max="20" value="4" />
             </label>
           </div>
         </div>
 
         <div class="param-group">
-          <h4 class="group-title">🔥 妨害要素</h4>
+          <h3 class="group-title"><span data-i18n="ui18">🔥 妨害要素</span></h3>
           <div class="sliders">
             <label class="field">
-              <span>ノイズ密度 (0–1) <span class="help-icon" data-tooltip="ランダムな点の密度。高いほど画像全体にノイズが増え、文字認識を妨害する">?</span></span>
+              <span><span data-i18n="ui19">ノイズ密度 (0–1)</span><span class="help-text"><span data-i18n="ui20">ランダムな点の密度。高いほど画像全体にノイズが増える</span></span></span>
               <input id="noise" type="range" min="0" max="1" value="0.2" step="0.02" />
             </label>
             <label class="field">
-              <span>線の本数 <span class="help-icon" data-tooltip="文字を横切る妨害線の数。多いほど文字が隠れやすくなり、認識難度が上がる">?</span></span>
+              <span><span data-i18n="ui21">線の本数</span><span class="help-text"><span data-i18n="ui22">文字を横切る線の数。多いほど文字が隠れやすくなる</span></span></span>
               <input id="lines" type="range" min="0" max="20" value="6" />
             </label>
           </div>
         </div>
 
         <div class="param-group">
-          <h4 class="group-title">🎨 見た目の調整</h4>
+          <h3 class="group-title"><span data-i18n="ui23">🎨 見た目の調整</span></h3>
           <div class="sliders">
             <label class="field">
-              <span>ぼかし (px) <span class="help-icon" data-tooltip="画像全体のぼかし具合。高いほど輪郭が曖昧になり、人間にも機械にも読みにくくなる">?</span></span>
+              <span><span data-i18n="ui24">ぼかしの強さ</span><span class="help-text"><span data-i18n="ui25">縮小して拡大する加工の強さ。値はガウスぼかしの半径ではない</span></span></span>
               <input id="blur" type="range" min="0" max="3" value="0.5" step="0.1" />
             </label>
             <label class="field">
-              <span>前景/背景コントラスト <span class="help-icon" data-tooltip="文字と背景の明暗差。低いと薄く見えにくく、高いとくっきりして読みやすくなる">?</span></span>
+              <span><span data-i18n="ui26">明るさ補正</span><span class="help-text"><span data-i18n="ui27">文字の明るさと最終画像のガンマ補正を同時に変える。コントラスト比の測定値ではない</span></span></span>
               <input id="contrast" type="range" min="0.2" max="1.2" value="0.9" step="0.05" />
             </label>
             <label class="field">
-              <span>文字色変化 (0–1) <span class="help-icon" data-tooltip="文字ごとの色のばらつき。高いほど各文字が異なる色相になり、カラフルになる">?</span></span>
+              <span><span data-i18n="ui28">文字色変化 (0–1)</span><span class="help-text"><span data-i18n="ui29">文字ごとの色のばらつき。高いほど各文字が異なる色相になり、カラフルになる</span></span></span>
               <input id="colorVariation" type="range" min="0" max="1" value="0" step="0.05" />
             </label>
           </div>
@@ -120,41 +124,41 @@
       </details>
 
       <details class="details">
-        <summary>背景・テクスチャ調整</summary>
+        <summary><span data-i18n="ui30">背景・テクスチャ調整</span></summary>
         <div class="sliders">
           <label class="field">
-            <span>背景の明度 (0–1) <span class="help-icon" data-tooltip="背景色の明るさ。高いほど背景が明るくなり、文字との対比が変化する">?</span></span>
+            <span><span data-i18n="ui31">背景の明度 (0–1)</span><span class="help-text"><span data-i18n="ui32">背景色の明るさ。高いほど背景が明るくなり、文字との対比が変化する</span></span></span>
             <input id="bgBrightness" type="range" min="0" max="1" value="0.3" step="0.05" />
           </label>
           <label class="field">
-            <span>背景色相 (0–360°) <span class="help-icon" data-tooltip="背景色の色相。0=赤、120=緑、240=青。様々な色の背景を選択可能">?</span></span>
+            <span><span data-i18n="ui33">背景色相 (0–360°)</span><span class="help-text"><span data-i18n="ui34">背景色の色相。0=赤、120=緑、240=青。様々な色の背景を選択可能</span></span></span>
             <input id="bgHue" type="range" min="0" max="360" value="240" step="10" />
           </label>
           <label class="field">
-            <span>粒子密度 (0–1) <span class="help-icon" data-tooltip="背景テクスチャの粒子数。高いほど紙の質感が粗くなる">?</span></span>
+            <span><span data-i18n="ui35">粒子密度 (0–1)</span><span class="help-text"><span data-i18n="ui36">背景テクスチャの粒子数。高いほど紙の質感が粗くなる</span></span></span>
             <input id="grainDensity" type="range" min="0" max="1" value="0.5" step="0.05" />
           </label>
           <label class="field">
-            <span>粒子明度 (0–1) <span class="help-icon" data-tooltip="背景粒子の明るさ。高いほど粒子がはっきりと見え、紙質感が強くなる">?</span></span>
+            <span><span data-i18n="ui37">粒子明度 (0–1)</span><span class="help-text"><span data-i18n="ui38">背景粒子の明るさ。高いほど粒子自体が明るくなる</span></span></span>
             <input id="grainBrightness" type="range" min="0" max="1" value="0.8" step="0.05" />
           </label>
           <label class="field">
-            <span>Seed <span class="help-icon" data-tooltip="乱数シード値。同じ値なら同じランダム配置が再現される。再現性の確保に使用">?</span></span>
-            <input id="seed" type="number" value="12345" />
+            <span>Seed <span class="help-text"><span data-i18n="ui39">乱数シード値。同じ設定、ブラウザー、フォント環境で再現するための値。0〜1000000000の整数</span></span></span>
+            <input id="seed" type="number" value="12345" min="0" max="1000000000" step="1" />
           </label>
         </div>
       </details>
 
       <div class="action-section">
-        <div class="section-label">生成</div>
+        <div class="section-label"><span data-i18n="ui40">生成</span></div>
         <div class="btn-group">
-          <button id="btnGenerate" class="btn primary large">🎨 生成</button>
-          <button id="btnRandomSeed" class="btn secondary">🎲 Seedランダム</button>
+          <button id="btnGenerate" class="btn primary large"><span data-i18n="ui41">🎨 生成</span></button>
+          <button id="btnRandomSeed" class="btn secondary"><span data-i18n="ui42">🎲 Seedランダム</span></button>
         </div>
       </div>
 
       <div class="action-section">
-        <div class="section-label">エクスポート</div>
+        <div class="section-label"><span data-i18n="ui43">エクスポート</span></div>
         <div class="btn-group">
           <button id="btnDownloadPNG" class="btn">📷 PNG</button>
           <button id="btnDownloadSVG" class="btn">📄 SVG</button>
@@ -162,108 +166,109 @@
       </div>
 
       <div class="action-section">
-        <div class="section-label">設定管理</div>
+        <div class="section-label"><span data-i18n="ui44">設定管理</span></div>
         <div class="btn-group">
-          <button id="btnDownloadParams" class="btn">💾 設定を保存</button>
-          <button id="btnLoadParams" class="btn">📂 設定を読込</button>
-          <input type="file" id="fileInput" accept=".json" style="display:none">
+          <button id="btnDownloadParams" class="btn"><span data-i18n="ui45">💾 設定を保存</span></button>
+          <button id="btnLoadParams" class="btn"><span data-i18n="ui46">📂 設定を読込</span></button>
+          <input type="file" id="fileInput" accept=".json" hidden>
         </div>
       </div>
     </section>
 
     <section class="panel preview">
-      <h2>プレビュー</h2>
+      <h2><span data-i18n="ui47">プレビュー</span></h2>
+      <p id="status" role="status" aria-live="polite"></p>
       <div class="canvas-wrap">
-        <canvas id="canvas" width="640" height="200"></canvas>
+        <canvas id="canvas" width="640" height="200" aria-label="生成画像" data-i18n-aria="image"></canvas>
       </div>
 
-      <div class="meters">
-        <div class="meter">
-          <div class="meter-head">
-            <span class="meter-label">Human Readability (HR)
-              <span class="help-icon" data-tooltip="Human Readability (HR): 人間が文字を判読できるかを示す 0-100 スコア。前景の占有率、ノイズによる視認性の低下、文字ストロークが連続しているかを指標化しています。値が高いほど人間にとって読みやすい状態です。">?</span>
-            </span>
-            <strong id="hrVal">--</strong>
-          </div>
-          <div class="meter-bar"><div id="hrBar"></div></div>
-        </div>
-        <div class="meter">
-          <div class="meter-head">
-            <span class="meter-label">Bot Readability (BR)
-              <span class="help-icon" data-tooltip="Bot Readability (BR): OCR が読み取れるかを推定する 0-100 スコア。輪郭の明瞭さ、占有率、水平エッジ遷移の少なさを基に算出します。値が低いほど自動認識にとって難しく、高いほど機械にも読みやすい状態です。">?</span>
-            </span>
-            <strong id="brVal">--</strong>
-          </div>
-          <div class="meter-bar danger"><div id="brBar"></div></div>
-        </div>
-      </div>
+      <p class="note" data-i18n="reproNote">同じ設定でも、ブラウザーやフォント環境が違うと画像は変わります。</p>
+      <p class="note" data-i18n="exportNote">SVGはPNGを埋め込んだ画像です。拡大しても細部は増えません。</p>
+      <section class="statistics" aria-labelledby="statisticsTitle">
+        <h3 id="statisticsTitle"><span data-i18n="ui48">画像の特徴</span></h3>
+        <p><span data-i18n="ui49">人やOCRの読み取り成功率、CAPTCHAの防御力は測定しません。</span></p>
+        <dl class="meters">
+          <div class="meter"><dt><span data-i18n="ui50">集計する画素の割合</span></dt><dd id="occupancyVal">—</dd></div>
+          <div class="meter"><dt><span data-i18n="ui51">横方向の明暗の切り替わり</span></dt><dd id="transitionsVal">—</dd></div>
+          <div class="meter"><dt><span data-i18n="ui52">横方向の連続区間</span></dt><dd id="runsVal">—</dd></div>
+          <div class="meter"><dt><span data-i18n="ui53">二値化のしきい値（0〜255）</span></dt><dd id="thresholdVal">—</dd></div>
+        </dl>
+        <p id="inversion"></p>
+        <details class="details">
+          <summary><span data-i18n="ui54">集計方法と限界</span></summary>
+          <p><span data-i18n="ui55">透明部分を白に重ね、RGBの加重平均で明るさを求めます。しきい値は平均の0.85倍を60〜180に収めた値です。</span></p>
+          <p><span data-i18n="ui56">しきい値未満の画素を集計し、55%を超えたときは反転します。これは文字の領域を検出する処理ではありません。</span></p>
+          <p><span data-i18n="ui57">切り替わりは同じ行の隣接画素の変化、連続区間は集計対象が横に連なるまとまりの数です。行をまたいで数えません。</span></p>
+        </details>
+      </section>
 
       <details class="details">
-        <summary>レイヤー分解（各段階プレビュー）</summary>
+        <summary><span data-i18n="ui58">レイヤー分解（各段階プレビュー）</span></summary>
         <div class="layer-previews">
           <div class="layer-step">
             <div class="layer-info">
               <span class="layer-number">1</span>
-              <span class="layer-title">下地（紙目/粒子/背景） <span class="help-icon" data-tooltip="背景の明度・背景色相・粒子密度・粒子明度・Seed で変化">?</span></span>
+              <span class="layer-title"><span data-i18n="ui59">下地（紙目/粒子/背景）</span><span class="help-text"><span data-i18n="ui60">背景の明度・背景色相・粒子密度・粒子明度・Seed で変化</span></span></span>
             </div>
             <canvas class="layer-canvas" id="layer1" width="160" height="50"></canvas>
           </div>
           <div class="layer-step">
             <div class="layer-info">
               <span class="layer-number">2</span>
-              <span class="layer-title">文字描画（フォント・回転ばらつき・字間） <span class="help-icon" data-tooltip="テキスト・フォント・回転ばらつき・字間・文字色変化・Seed で変化">?</span></span>
+              <span class="layer-title"><span data-i18n="ui61">文字描画（フォント・回転ばらつき・字間）</span><span class="help-text"><span data-i18n="ui62">テキスト・フォント・回転ばらつき・字間・文字色変化・Seed で変化</span></span></span>
             </div>
             <canvas class="layer-canvas" id="layer2" width="160" height="50"></canvas>
           </div>
           <div class="layer-step">
             <div class="layer-info">
               <span class="layer-number">3</span>
-              <span class="layer-title">ワープ（正弦2軸） <span class="help-icon" data-tooltip="波形振幅・波形周期・Seed で歪みパターンが変化">?</span></span>
+              <span class="layer-title"><span data-i18n="ui63">ワープ（正弦2軸）</span><span class="help-text"><span data-i18n="ui64">波形振幅・波形周期・Seed で歪みパターンが変化</span></span></span>
             </div>
             <canvas class="layer-canvas" id="layer3" width="160" height="50"></canvas>
           </div>
           <div class="layer-step">
             <div class="layer-info">
               <span class="layer-number">4</span>
-              <span class="layer-title">ノイズ（粒子） <span class="help-icon" data-tooltip="ノイズ密度・Seed でランダム粒子の配置と量が変化">?</span></span>
+              <span class="layer-title"><span data-i18n="ui65">ノイズ（粒子）</span><span class="help-text"><span data-i18n="ui66">ノイズ密度・Seed でランダム粒子の配置と量が変化</span></span></span>
             </div>
             <canvas class="layer-canvas" id="layer4" width="160" height="50"></canvas>
           </div>
           <div class="layer-step">
             <div class="layer-info">
               <span class="layer-number">5</span>
-              <span class="layer-title">交差線（直線/曲線） <span class="help-icon" data-tooltip="線の本数・Seed で妨害線の位置と形状が変化">?</span></span>
+              <span class="layer-title"><span data-i18n="ui67">交差線（直線/曲線）</span><span class="help-text"><span data-i18n="ui68">線の本数・Seed で妨害線の位置と形状が変化</span></span></span>
             </div>
             <canvas class="layer-canvas" id="layer5" width="160" height="50"></canvas>
           </div>
           <div class="layer-step">
             <div class="layer-info">
               <span class="layer-number">6</span>
-              <span class="layer-title">ぼかし <span class="help-icon" data-tooltip="ぼかし の値で画像全体のシャープネスが変化">?</span></span>
+              <span class="layer-title"><span data-i18n="ui69">ぼかし</span><span class="help-text"><span data-i18n="ui70">縮小と拡大による加工で画像の鮮明さが変化</span></span></span>
             </div>
             <canvas class="layer-canvas" id="layer6" width="160" height="50"></canvas>
           </div>
           <div class="layer-step">
             <div class="layer-info">
               <span class="layer-number">7</span>
-              <span class="layer-title">コントラスト調整（最終結果） <span class="help-icon" data-tooltip="前景/背景コントラスト で明暗差が調整された最終画像">?</span></span>
+              <span class="layer-title"><span data-i18n="ui71">ガンマ補正（最終結果）</span><span class="help-text"><span data-i18n="ui72">明るさ補正の値でガンマ補正を行った最終画像</span></span></span>
             </div>
             <canvas class="layer-canvas" id="layer7" width="160" height="50"></canvas>
           </div>
         </div>
-        <p class="note">※ 各段階の処理結果をリアルタイムで表示</p>
+        <p class="note"><span data-i18n="ui73">各段階の静止画像を、設定変更に合わせて更新します。</span></p>
       </details>
     </section>
   </main>
 
   <footer>
-    <div class="footer">
-      🔗 GitHubリポジトリはこちら（
-      <a href="https://github.com/ipusiron/captcha-art-generator" target="_blank">ipusiron/captcha-art-generator</a>
+    <div class="footer"><span data-i18n="ui74">🔗 GitHubリポジトリー（</span><a href="https://github.com/ipusiron/captcha-art-generator" target="_blank" rel="noopener noreferrer">ipusiron/captcha-art-generator</a>
       ）
     </div>
   </footer>
 
+  <script src="./js/art-core.js"></script>
+  <script src="./js/messages.js"></script>
+  <script src="./js/i18n.js"></script>
   <script src="./script.js"></script>
 </body>
 </html>

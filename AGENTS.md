@@ -18,7 +18,8 @@
 - Document new presets or control groups with concise comments mirroring the existing `// -----` section markers in `script.js`.
 
 ## Testing Guidelines
-- Manual QA: run a local server, exercise each preset, and confirm HR/BR gauges update without console errors.
+- Run `npm test` (Node.js 22+) without installing packages.
+- Manual QA: exercise every preset and image statistics over HTTP and file:// without console/CSP errors.
 - Validate PNG/SVG downloads still succeed after changes and open correctly in common viewers.
 - When altering layout or accessibility, verify keyboard-only interaction for sliders and buttons remains intact.
 
@@ -30,4 +31,5 @@
 
 ## Security & Accessibility Notes
 - Avoid introducing remote scripts; keep dependencies self-contained to prevent CSP regressions and mixed-content warnings.
-- Preserve the Minimal preset as an accessible fallback and document any changes that affect screen-reader verbosity in the PR description.
+- Preserve Minimal as a reduced-processing comparison, not a promise of accessible authentication.
+- Check Japanese/English and light/dark views at 320, 390 and 1280px; retain keyboard access to explanations.
