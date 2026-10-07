@@ -29,7 +29,7 @@
 
       <label class="field">
         <span>テキスト</span>
-        <input id="textInput" type="text" value="HELLO42" maxlength="32" />
+        <input id="textInput" type="text" value="HELLO42" maxlength="64" />
       </label>
 
       <div class="grid-2">
@@ -46,6 +46,7 @@
         <label class="field">
           <span>プリセット</span>
           <select id="presetSelect">
+            <option value="custom">カスタム</option>
             <option value="classic">Classic</option>
             <option value="elastic">Elastic</option>
             <option value="grainy">Grainy</option>
@@ -140,7 +141,7 @@
           </label>
           <label class="field">
             <span>Seed <span class="help-icon" data-tooltip="乱数シード値。同じ値なら同じランダム配置が再現される。再現性の確保に使用">?</span></span>
-            <input id="seed" type="number" value="12345" />
+            <input id="seed" type="number" value="12345" min="0" max="1000000000" step="1" />
           </label>
         </div>
       </details>
@@ -173,30 +174,28 @@
 
     <section class="panel preview">
       <h2>プレビュー</h2>
+      <p id="status" role="status" aria-live="polite"></p>
       <div class="canvas-wrap">
         <canvas id="canvas" width="640" height="200"></canvas>
       </div>
 
-      <div class="meters">
-        <div class="meter">
-          <div class="meter-head">
-            <span class="meter-label">Human Readability (HR)
-              <span class="help-icon" data-tooltip="Human Readability (HR): 人間が文字を判読できるかを示す 0-100 スコア。前景の占有率、ノイズによる視認性の低下、文字ストロークが連続しているかを指標化しています。値が高いほど人間にとって読みやすい状態です。">?</span>
-            </span>
-            <strong id="hrVal">--</strong>
-          </div>
-          <div class="meter-bar"><div id="hrBar"></div></div>
-        </div>
-        <div class="meter">
-          <div class="meter-head">
-            <span class="meter-label">Bot Readability (BR)
-              <span class="help-icon" data-tooltip="Bot Readability (BR): OCR が読み取れるかを推定する 0-100 スコア。輪郭の明瞭さ、占有率、水平エッジ遷移の少なさを基に算出します。値が低いほど自動認識にとって難しく、高いほど機械にも読みやすい状態です。">?</span>
-            </span>
-            <strong id="brVal">--</strong>
-          </div>
-          <div class="meter-bar danger"><div id="brBar"></div></div>
-        </div>
-      </div>
+      <section class="statistics" aria-labelledby="statisticsTitle">
+        <h3 id="statisticsTitle">画像の特徴</h3>
+        <p>人やOCRの読み取り成功率、CAPTCHAの防御力は測定しません。</p>
+        <dl class="meters">
+          <div class="meter"><dt>集計する画素の割合</dt><dd id="occupancyVal">—</dd></div>
+          <div class="meter"><dt>横方向の明暗の切り替わり</dt><dd id="transitionsVal">—</dd></div>
+          <div class="meter"><dt>横方向の連続区間</dt><dd id="runsVal">—</dd></div>
+          <div class="meter"><dt>二値化のしきい値（0〜255）</dt><dd id="thresholdVal">—</dd></div>
+        </dl>
+        <p id="inversion"></p>
+        <details class="details">
+          <summary>集計方法と限界</summary>
+          <p>透明部分を白に重ね、RGBの加重平均で明るさを求めます。しきい値は平均の0.85倍を60〜180に収めた値です。</p>
+          <p>しきい値未満の画素を集計し、55%を超えたときは反転します。これは文字の領域を検出する処理ではありません。</p>
+          <p>切り替わりは同じ行の隣接画素の変化、連続区間は集計対象が横に連なるまとまりの数です。行をまたいで数えません。</p>
+        </details>
+      </section>
 
       <details class="details">
         <summary>レイヤー分解（各段階プレビュー）</summary>
@@ -264,6 +263,7 @@
     </div>
   </footer>
 
+  <script src="./js/art-core.js"></script>
   <script src="./script.js"></script>
 </body>
 </html>

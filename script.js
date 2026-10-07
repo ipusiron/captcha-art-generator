@@ -23,11 +23,12 @@
 // Handles light/dark theme switching with localStorage persistence
 const themeToggle = document.getElementById('themeToggle');
 const themeIcon = document.querySelector('.theme-icon');
-const savedTheme = localStorage.getItem('theme') || 'dark';
+let savedTheme = 'light';
+try { savedTheme = localStorage.getItem('theme') === 'dark' ? 'dark' : 'light'; } catch { /* Optional storage. */ }
 
 function setTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem('theme', theme);
+  try { localStorage.setItem('theme', theme); } catch { /* Keep working without storage. */ }
   themeIcon.textContent = theme === 'light' ? '🌙' : '☀️';
 }
 
@@ -49,14 +50,7 @@ themeToggle.addEventListener('click', () => {
  * @returns {string} Sanitized text
  */
 function sanitizeText(input) {
-  if (typeof input !== 'string') return '';
-
-  // Remove potentially dangerous characters and limit length
-  return input
-    .replace(/[<>"'&]/g, '') // Remove HTML/JS injection characters
-    .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // Remove control characters
-    .slice(0, 32) // Enforce maximum length
-    .trim();
+  return ArtCore.normalizeText(input);
 }
 
 /**
@@ -265,26 +259,7 @@ function applyPreset(name){
 // ========================================
 // Multi-stage image generation with consistent randomization
 
-// RNG sequence caching for deterministic results
-// This ensures that changing non-layout parameters (color, contrast, blur)
-// doesn't affect the positioning and distortion of text
-let cachedRngSequence = null; // Pre-generated random number sequence
-let cachedSeed = null;        // Last seed used for sequence generation
-
-/**
- * Generate a sequence of random numbers for consistent rendering
- * @param {number} seed - Random seed value
- * @param {number} count - Number of random values to pre-generate
- * @returns {Array<number>} Array of random numbers [0, 1)
- */
-function getRngSequence(seed, count) {
-  const rng = mulberry32(seed);
-  const sequence = [];
-  for(let i = 0; i < count; i++) {
-    sequence.push(rng());
-  }
-  return sequence;
-}
+// Each render starts a fresh deterministic stream; no finite cache or wraparound.
 
 /**
  * Main rendering function - generates CAPTCHA image through multi-stage pipeline
@@ -292,33 +267,24 @@ function getRngSequence(seed, count) {
  */
 function render(){
   const W = refs.canvas.width, H = refs.canvas.height;
-  const seed = parseInt(refs.seed.value || '0', 10) || 0;
-
-  // Generate or use cached RNG sequence for consistent results
-  const RNG_SEQUENCE_LENGTH = 10000; // Should be sufficient for all random operations
-  if (seed !== cachedSeed) {
-    cachedRngSequence = getRngSequence(seed, RNG_SEQUENCE_LENGTH);
-    cachedSeed = seed;
+  const seed = Number(refs.seed.value);
+  if (refs.seed.value.trim() === '' || !Number.isInteger(seed) || seed < 0 || seed > 1e9) {
+    clearOutput();
+    showStatus('invalidSeed');
+    return;
   }
-
-  // Create sequential RNG function that consumes pre-generated sequence
-  let rngIndex = 0;
-  const rng = () => {
-    if (rngIndex >= cachedRngSequence.length) {
-      console.warn('RNG sequence exhausted, cycling back to start');
-      rngIndex = 0;
-    }
-    return cachedRngSequence[rngIndex++];
-  };
-
-  // Get and sanitize input parameters from UI controls
+  const rng = ArtCore.mulberry32(seed);
   const text = sanitizeText(refs.text.value);
-  if(!text){
-    ctx.clearRect(0,0,W,H);
-    // Reset readability meters when no text
-    setMeters(0, 0);
-    return; // Exit early if no text to render
+  refs.text.value = text;
+  if (!text.trim()) {
+    clearOutput();
+    showStatus('empty');
+    return;
   }
+  showStatus('');
+  refs.btnPNG.disabled = false;
+  refs.btnSVG.disabled = false;
+  refs.btnParams.disabled = false;
 
   // Validate and sanitize all numeric parameters
   const font = refs.font.value; // Select values are pre-validated by HTML
@@ -374,17 +340,21 @@ function render(){
 
   // Calculate text positioning for centering
   const metrics = b2.measureText(text);
-  const estCharW = Math.max(20, (metrics.width / Math.max(1,text.length))); // Estimated character width
-  const baseX = (W - (estCharW + spacing)*text.length)/2; // Horizontal center
+  const chars = Array.from(text);
+  const estCharW = Math.max(20, metrics.width / chars.length);
+  const textWidth = estCharW * chars.length + spacing * (chars.length - 1);
+  // Keep long input inside the drawing area; no promise of cross-font pixel identity.
+  const fit = Math.min(1, (W - 2 * (amp + 30)) / Math.max(1, textWidth));
+  const baseX = (W - textWidth * fit) / 2;
   const baseY = H/2 + 4; // Vertical center with slight offset
 
   // Calculate base text color based on contrast setting
   const baseFg = Math.floor(220*contrast); // Higher contrast = brighter text
 
   // Render each character with individual transformations
-  for(let i=0;i<text.length;i++){
-    const ch = text[i];
-    const x = baseX + i*(estCharW + spacing);
+  for(let i=0;i<chars.length;i++){
+    const ch = chars[i];
+    const x = baseX + i*(estCharW + spacing)*fit;
     const rot = randRange(rng, -rotJ, rotJ); // Random rotation within jitter range
 
     // Color variation per character
@@ -418,6 +388,7 @@ function render(){
     b2.fillStyle = `rgb(${r},${g},${b})`;
     b2.save();
     b2.translate(x, baseY);
+    b2.scale(fit, fit);
     b2.rotate(rot); // Apply rotation jitter
     b2.fillText(ch, 0, 0);
     b2.restore();
@@ -504,7 +475,7 @@ function render(){
 
   for(let i=0;i<lines;i++){
     // Position line endpoints to avoid heavy clustering over text center
-    // 40% chance to place in upper/lower regions, 60% chance anywhere
+    // 40% in the upper region and 60% in the lower region.
     const y1 = rng()<0.4 ? randRange(rng,0, H*0.35) : randRange(rng,H*0.65, H);
     const y2 = rng()<0.4 ? randRange(rng,0, H*0.35) : randRange(rng,H*0.65, H);
 
@@ -540,7 +511,7 @@ function render(){
   // STAGE 6: BLUR EFFECT
   // ========================================
   // Apply blur using downscale-upscale technique
-  // Canvas API has no direct blur; we can approximate with shadow or drawImage with small scale.
+  // Approximation by resampling, not a Gaussian blur radius.
   // Apply blur effect if blur parameter > 0
   if(blur > 0){
     // Use downscale-upscale technique for blur approximation
@@ -593,127 +564,43 @@ function render(){
   ctx.clearRect(0,0,W,H);
   ctx.drawImage(buf1,0,0);
 
-  // Calculate and display readability metrics
-  const {HR, BR} = estimateReadabilities(buf1);
-  setMeters(HR, BR);
+  updateStatistics();
 }
 
-// ========================================
-// READABILITY METRICS
-// ========================================
-// Estimate Human Readability (HR) and Bot Readability (BR) scores
-/**
- * Estimate readability metrics for the generated CAPTCHA
- * @param {HTMLCanvasElement} canvas - Canvas containing the CAPTCHA image
- * @returns {Object} Object with HR (Human Readability) and BR (Bot Readability) scores
- */
-function estimateReadabilities(canvas){
-  // Validate canvas
-  if (!canvas || canvas.width === 0 || canvas.height === 0) {
-    return { HR: 0, BR: 0 };
-  }
-
-  const W = canvas.width, H = canvas.height;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return { HR: 0, BR: 0 };
-
-  const id = ctx.getImageData(0,0,W,H);
-  const d = id.data;
-
-  // Step 1: Calculate adaptive threshold for binarization
-  // Convert to grayscale using luminance formula
-  let sum=0;
-  for(let i=0;i<d.length;i+=4){
-    const g = 0.2126*d[i]+0.7152*d[i+1]+0.0722*d[i+2]; // Luminance
-    sum += g;
-  }
-  const mean = sum / (d.length/4);
-  const th = clamp(mean*0.85, 60, 180); // Adaptive threshold with bounds
-
-  // Step 2: Binarize image and calculate statistics
-  const totalPixels = W*H;
-  const bin = new Uint8Array(totalPixels); // Binary image buffer
-  let fg = 0; // Foreground pixel count
-
-  for(let y=0;y<H;y++){
-    for(let x=0;x<W;x++){
-      const i = (y*W + x)*4;
-      const g = 0.2126*d[i]+0.7152*d[i+1]+0.0722*d[i+2]; // Grayscale value
-      const v = g < th ? 1 : 0; // Assume dark foreground by default
-      bin[y*W+x] = v;
-      fg += v;
-    }
-  }
-
-  // If majority of pixels classified as foreground, invert mask (bright text on dark background)
-  if(fg > totalPixels * 0.55){
-    for(let i=0;i<totalPixels;i++){
-      bin[i] = 1 - bin[i];
-    }
-    fg = totalPixels - fg;
-  }
-
-  const occ = fg/totalPixels; // Foreground occupancy ratio
-
-  // Step 3: Count transitions and horizontal runs using finalized mask
-  let transitions = 0;
-  let runs = 0;
-  for(let y=0;y<H;y++){
-    let prev = 0;
-    let inRun = false;
-    for(let x=0;x<W;x++){
-      const idx = y*W + x;
-      const v = bin[idx];
-      if(x>0 && v !== prev) transitions++;
-      if(v){
-        if(!inRun){
-          runs++;
-          inRun = true;
-        }
-      } else if(inRun){
-        inRun = false;
-      }
-      prev = v;
-    }
-  }
-
-  // Step 4: Calculate readability scores (0-100)
-
-  // Human Readability (HR) - penalizes excessive clutter
-  const occHR = 100 * (1 - Math.abs(occ-0.18)/0.18); // Optimal occupancy ~18%
-  const tranNorm = clamp(1 - (transitions/(W*H*0.12)), 0, 1); // Fewer transitions = better
-  const runNorm = clamp(1 - (runs/(H*2.8)), 0, 1); // Fewer runs = less fragmentation
-
-  let HR = clamp(0.5*occHR + 30*tranNorm + 20*runNorm, 0, 100);
-
-  // Bot Readability (BR) - simplified OCR difficulty estimation
-  const occBR = 100 * (1 - Math.abs(occ-0.12)/0.12); // Machines prefer ~12% occupancy
-  const tranBR = clamp((transitions/(W*H*0.08)), 0, 1); // Too many transitions confuse OCR
-  const brVal = clamp(0.6*occBR + 25*runNorm + 10*(1-tranBR), 0, 100);
-
-  // Round to integers for display
-  HR = Math.round(HR);
-  const BR = Math.round(brVal);
-
-  return { HR, BR };
+let statusKey = '';
+function showStatus(key) {
+  statusKey = key;
+  const messages = {
+    empty: '文字を入力してください。',
+    invalidSeed: 'Seedは0〜1000000000の整数で入力してください。',
+    invalidSettings: '設定を読み込めません。64 KiB以下の完全な設定JSONを選んでください。現在の設定は変更していません。',
+    loaded: '設定を読み込みました。',
+    cancelled: '読み込みを取り消しました。現在の設定は変更していません。'
+  };
+  document.getElementById('status').textContent = key ? messages[key] : '';
 }
 
-/**
- * Update the readability meter displays
- * @param {number} HR - Human Readability score (0-100)
- * @param {number} BR - Bot Readability score (0-100)
- */
-function setMeters(HR, BR){
-  // Validate inputs
-  if (typeof HR !== 'number' || typeof BR !== 'number' || isNaN(HR) || isNaN(BR)) {
-    HR = 0; BR = 0;
-  }
+function clearOutput() {
+  [refs.canvas, buf1, buf2, ...Array.from({length: 7}, (_, i) => refs['layer' + (i + 1)])].forEach(canvas => {
+    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+  });
+  ['occupancy', 'transitions', 'runs', 'threshold'].forEach(id => {
+    document.getElementById(id + 'Val').textContent = '—';
+  });
+  document.getElementById('inversion').textContent = '';
+  refs.btnPNG.disabled = true;
+  refs.btnSVG.disabled = true;
+  refs.btnParams.disabled = true;
+}
 
-  // Ensure elements exist before updating
-  if (refs.hrBar) refs.hrBar.style.width = `${HR}%`;
-  if (refs.brBar) refs.brBar.style.width = `${BR}%`;
-  if (refs.hrVal) refs.hrVal.textContent = `${HR}`;
-  if (refs.brVal) refs.brVal.textContent = `${BR}`;
+function updateStatistics() {
+  const stats = ArtCore.analyzePixels(ctx.getImageData(0, 0, refs.canvas.width, refs.canvas.height).data,
+    refs.canvas.width, refs.canvas.height);
+  document.getElementById('occupancyVal').textContent = (stats.occupancy * 100).toFixed(2) + '%';
+  document.getElementById('transitionsVal').textContent = String(stats.transitions);
+  document.getElementById('runsVal').textContent = String(stats.runs);
+  document.getElementById('thresholdVal').textContent = stats.threshold.toFixed(2);
+  document.getElementById('inversion').textContent = stats.inverted ? '明るい側を集計' : '暗い側を集計';
 }
 
 // ========================================
@@ -766,249 +653,98 @@ function downloadSVG(){
   a.click();
   URL.revokeObjectURL(url); // Clean up blob URL
 }
-async function downloadParams(){
-  // Sanitize all parameters before export
-  const params = {
-    text: sanitizeText(refs.text.value),
-    font: refs.font.value,
-    preset: refs.preset.value,
-    amp: sanitizeNumber(refs.amp.value, 0, 40, 12),
-    lambda: sanitizeNumber(refs.lambda.value, 20, 160, 80),
-    rotJitterDeg: sanitizeNumber(refs.rotJ.value, 0, 20, 6),
-    spacing: sanitizeNumber(refs.spacing.value, -5, 20, 4),
-    noise: sanitizeNumber(refs.noise.value, 0, 1, 0.2),
-    lines: sanitizeNumber(refs.lines.value, 0, 20, 6),
-    blur: sanitizeNumber(refs.blur.value, 0, 3, 0.5),
-    contrast: sanitizeNumber(refs.contrast.value, 0.2, 1.2, 0.9),
-    colorVariation: sanitizeNumber(refs.colorVariation.value, 0, 1, 0),
-    bgBrightness: sanitizeNumber(refs.bgBrightness.value, 0, 1, 0.3),
-    bgHue: sanitizeNumber(refs.bgHue.value, 0, 360, 240),
-    grainDensity: sanitizeNumber(refs.grainDensity.value, 0, 1, 0.5),
-    grainBrightness: sanitizeNumber(refs.grainBrightness.value, 0, 1, 0.8),
-    seed: sanitizeNumber(refs.seed.value, 0, 1e9, 12345),
-    timestamp: new Date().toISOString()
-  };
-
-  const jsonContent = JSON.stringify(params, null, 2);
-  const defaultFilename = `captcha-art-params_${getTimestamp()}.json`;
-
-  // Try to use File System Access API if available (Chrome/Edge)
-  if ('showSaveFilePicker' in window) {
-    try {
-      const fileHandle = await window.showSaveFilePicker({
-        suggestedName: defaultFilename,
-        types: [{
-          description: 'JSON Files',
-          accept: { 'application/json': ['.json'] }
-        }]
-      });
-      const writableStream = await fileHandle.createWritable();
-      await writableStream.write(jsonContent);
-      await writableStream.close();
-      return;
-    } catch (err) {
-      // User cancelled or API not supported, fall back to traditional download
-      if (err.name === 'AbortError') {
-        return; // User cancelled, do nothing
-      }
-    }
-  }
-
-  // Fallback: traditional download with prompt for filename
-  let userFilename = prompt('ファイル名を入力してください:', defaultFilename);
-  if (!userFilename) return; // User cancelled
-
-  // Sanitize filename to prevent path traversal attacks
-  userFilename = userFilename.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').slice(0, 100);
-  if (!userFilename) userFilename = defaultFilename;
-
-  const blob = new Blob([jsonContent], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = userFilename.endsWith('.json') ? userFilename : `${userFilename}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
+// Export the same validated values that drive rendering.
+const paramRefs = {
+  amp: 'amp', lambda: 'lambda', rotJitterDeg: 'rotJ', spacing: 'spacing', noise: 'noise', lines: 'lines',
+  blur: 'blur', contrast: 'contrast', colorVariation: 'colorVariation', bgBrightness: 'bgBrightness',
+  bgHue: 'bgHue', grainDensity: 'grainDensity', grainBrightness: 'grainBrightness', seed: 'seed'
+};
+function currentSettings() {
+  const value = {version: 1, text: refs.text.value, font: refs.font.value, preset: refs.preset.value};
+  for (const [key, ref] of Object.entries(paramRefs)) value[key] = Number(refs[ref].value);
+  return ArtCore.validateSettings(value);
 }
-
-// ========================================
-// PARAMETER IMPORT/EXPORT
-// ========================================
-/**
- * Load parameters from JSON object and apply to UI controls
- * @param {Object} params - Parameter object from JSON file
- */
+function downloadParams() {
+  const data = currentSettings();
+  const blob = new Blob([JSON.stringify(data, null, 2) + '\n'], {type: 'application/json'});
+  downloadBlob(blob, 'captcha-art-params_' + getTimestamp() + '.json');
+}
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 function loadParams(params) {
-  if (!params || typeof params !== 'object') return;
-
-  // Validate and sanitize each parameter before applying
-  if (params.text !== undefined) {
-    refs.text.value = sanitizeText(params.text);
-  }
-
-  // Validate font selection against allowed values
-  const validFonts = Array.from(refs.font.options).map(opt => opt.value);
-  if (params.font !== undefined && validFonts.includes(params.font)) {
-    refs.font.value = params.font;
-  }
-
-  // Validate preset selection
-  const validPresets = Array.from(refs.preset.options).map(opt => opt.value);
-  if (params.preset !== undefined && validPresets.includes(params.preset)) {
-    refs.preset.value = params.preset;
-  }
-
-  // Sanitize numeric parameters with proper bounds
-  if (params.amp !== undefined) {
-    refs.amp.value = sanitizeNumber(params.amp, 0, 40, 12);
-  }
-  if (params.lambda !== undefined) {
-    refs.lambda.value = sanitizeNumber(params.lambda, 20, 160, 80);
-  }
-  if (params.rotJitterDeg !== undefined) {
-    refs.rotJ.value = sanitizeNumber(params.rotJitterDeg, 0, 20, 6);
-  }
-  if (params.spacing !== undefined) {
-    refs.spacing.value = sanitizeNumber(params.spacing, -5, 20, 4);
-  }
-  if (params.noise !== undefined) {
-    refs.noise.value = sanitizeNumber(params.noise, 0, 1, 0.2);
-  }
-  if (params.lines !== undefined) {
-    refs.lines.value = sanitizeNumber(params.lines, 0, 20, 6);
-  }
-  if (params.blur !== undefined) {
-    refs.blur.value = sanitizeNumber(params.blur, 0, 3, 0.5);
-  }
-  if (params.contrast !== undefined) {
-    refs.contrast.value = sanitizeNumber(params.contrast, 0.2, 1.2, 0.9);
-  }
-  if (params.colorVariation !== undefined) {
-    refs.colorVariation.value = sanitizeNumber(params.colorVariation, 0, 1, 0);
-  }
-  if (params.bgBrightness !== undefined) {
-    refs.bgBrightness.value = sanitizeNumber(params.bgBrightness, 0, 1, 0.3);
-  }
-  if (params.bgHue !== undefined) {
-    refs.bgHue.value = sanitizeNumber(params.bgHue, 0, 360, 240);
-  }
-  if (params.grainDensity !== undefined) {
-    refs.grainDensity.value = sanitizeNumber(params.grainDensity, 0, 1, 0.5);
-  }
-  if (params.grainBrightness !== undefined) {
-    refs.grainBrightness.value = sanitizeNumber(params.grainBrightness, 0, 1, 0.8);
-  }
-  if (params.seed !== undefined) {
-    refs.seed.value = sanitizeNumber(params.seed, 0, 1e9, 12345);
-  }
-
-  // Regenerate image with loaded parameters
+  const value = ArtCore.validateSettings(params);
+  refs.text.value = value.text;
+  refs.font.value = value.font;
+  refs.preset.value = value.preset;
+  for (const [key, ref] of Object.entries(paramRefs)) refs[ref].value = value[key];
   render();
 }
 
-/**
- * Handle JSON file selection and loading
- * @param {Event} event - File input change event
- */
+let revision = 0;
+function invalidateImport() { revision++; }
 async function handleFileLoad(event) {
   const file = event.target.files[0];
+  const ticket = ++revision;
   if (!file) return;
-
-  // Validate file before processing
-  if (!validateJSONFile(file)) {
-    alert('有効なJSONファイルを選択してください。');
-    refs.fileInput.value = '';
-    return;
-  }
-
   try {
-    const text = await file.text();
-
-    // Limit file content size
-    if (text.length > 100000) { // 100KB limit
-      throw new Error('File too large');
+    if (file.size > ArtCore.LIMIT_BYTES) throw new Error('invalidSettings');
+    const value = ArtCore.parseSettings(await file.text());
+    if (ticket !== revision) return;
+    if (!confirm('現在の設定を、このファイルの設定に置き換えますか？')) {
+      showStatus('cancelled');
+      return;
     }
-
-    const params = JSON.parse(text);
-
-    // Additional validation of JSON structure
-    if (!params || typeof params !== 'object') {
-      throw new Error('Invalid JSON structure');
-    }
-
-    loadParams(params);
-
-    // Clear file input to allow re-selecting the same file
-    refs.fileInput.value = '';
-  } catch (error) {
-    alert('JSONファイルの読み込みに失敗しました。正しい形式のファイルか確認してください。');
-    // Don't log detailed error information to console in production
-    refs.fileInput.value = '';
+    loadParams(value);
+    // Preserve empty/invalid input guidance when it applies.
+    if (value.text.trim()) showStatus('loaded');
+  } catch {
+    if (ticket === revision) showStatus('invalidSettings');
+  } finally {
+    if (ticket === revision) refs.fileInput.value = '';
   }
 }
 
 // ========================================
 // EVENT LISTENERS
 // ========================================
-// Wire up all UI interactions
 refs.preset.addEventListener('change', () => {
-  applyPreset(refs.preset.value);
+  invalidateImport();
+  if (refs.preset.value !== 'custom') {
+    const values = ArtCore.preset(refs.preset.value);
+    for (const [key, value] of Object.entries(values)) refs[paramRefs[key]].value = value;
+  }
   render();
 });
-
-// Random seed generation
 refs.btnSeed.addEventListener('click', () => {
-  const newSeed = Math.floor(Math.random()*1e9);
-  refs.seed.value = sanitizeNumber(newSeed, 0, 1e9, 12345);
-  cachedSeed = null; // Force new RNG sequence generation
+  invalidateImport();
+  refs.seed.value = Math.floor(Math.random() * 1e9);
   render();
 });
-refs.btnGen.addEventListener('click', render);
+refs.btnGen.addEventListener('click', () => { invalidateImport(); render(); });
 refs.btnPNG.addEventListener('click', downloadPNG);
 refs.btnSVG.addEventListener('click', downloadSVG);
 refs.btnParams.addEventListener('click', downloadParams);
-refs.btnLoadParams.addEventListener('click', () => refs.fileInput.click());
+refs.btnLoadParams.addEventListener('click', () => { invalidateImport(); refs.fileInput.click(); });
 refs.fileInput.addEventListener('change', handleFileLoad);
-
-// Live update for visual-only parameters (don't affect layout)
-[refs.colorVariation, refs.contrast, refs.blur, refs.bgBrightness, refs.bgHue, refs.grainBrightness].forEach(el => {
+[refs.text, refs.font, ...Object.values(paramRefs).map(key => refs[key])].forEach(el => {
   el.addEventListener('input', () => {
-    render(); // No need to clear RNG cache
-  });
-});
-
-// Grain density affects layout, so clear cache
-[refs.grainDensity].forEach(el => {
-  el.addEventListener('input', () => {
-    cachedSeed = null; // Clear cache to regenerate layout
+    invalidateImport();
+    if (el !== refs.text && el !== refs.font && el !== refs.seed) refs.preset.value = 'custom';
     render();
   });
 });
 
-// Live update for layout-affecting parameters
-[refs.text, refs.font, refs.amp, refs.lambda, refs.rotJ, refs.spacing,
- refs.noise, refs.lines].forEach(el => {
-  el.addEventListener('input', () => {
-    cachedSeed = null; // Clear cache to regenerate layout
-    render();
-  });
+// Use continuous range controls so all valid saved decimals round trip unchanged.
+Object.values(paramRefs).forEach(key => {
+  if (key !== 'seed' && key !== 'lines') refs[key].step = 'any';
 });
-
-// Seed changes always require cache clearing
-refs.seed.addEventListener('input', () => {
-  cachedSeed = null;
-  render();
-});
-
-// ========================================
-// INITIALIZATION
-// ========================================
-// Set up initial state and render first image
-
-// Ensure DOM elements are available
-if (!refs.hrBar || !refs.brBar || !refs.hrVal || !refs.brVal) {
-  console.warn('Some readability meter elements not found');
-}
-
-applyPreset('classic'); // Load default preset
-render();              // Generate initial CAPTCHA
+applyPreset('classic');
+render();
