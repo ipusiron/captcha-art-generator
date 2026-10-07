@@ -2,14 +2,14 @@
    CAPTCHA Art Generator - Educational Tool
 
    This application generates CAPTCHA-style distorted images
-   to demonstrate the balance between human and machine readability.
+   to explore visual effects without claiming to measure reading performance.
 
    Key Features:
    - Reproducible generation using seeded PRNG
    - Multi-layer rendering pipeline (background, text, warp, noise, lines)
    - Real-time parameter adjustment with visual feedback
    - Export capabilities (PNG, SVG, JSON settings)
-   - Readability metrics estimation (HR/BR)
+   - Image statistics without readability or security scoring
 
    Architecture:
    - Pure client-side JavaScript with HTML5 Canvas
@@ -36,6 +36,7 @@ setTheme(savedTheme);
 document.getElementById('helpToggle').addEventListener('click', event => {
   const open = document.documentElement.classList.toggle('show-help');
   event.currentTarget.setAttribute('aria-expanded', String(open));
+  event.currentTarget.textContent = ArtI18n.t(open ? 'hideHelp' : 'ui2');
 });
 
 themeToggle.addEventListener('click', () => {
@@ -49,7 +50,7 @@ themeToggle.addEventListener('click', () => {
 // ========================================
 
 /**
- * Sanitize text input to prevent XSS attacks
+ * Normalize text for Canvas (not an HTML sink)
  * @param {string} input - Raw text input
  * @returns {string} Sanitized text
  */
@@ -71,42 +72,6 @@ function sanitizeNumber(input, min, max, defaultValue) {
   return clamp(num, min, max);
 }
 
-/**
- * Validate file type for JSON import
- * @param {File} file - File object to validate
- * @returns {boolean} True if valid JSON file
- */
-function validateJSONFile(file) {
-  if (!file) return false;
-
-  // Check file type
-  const validTypes = ['application/json', 'text/json'];
-  if (!validTypes.includes(file.type) && !file.name.toLowerCase().endsWith('.json')) {
-    return false;
-  }
-
-  // Check file size (limit to 1MB)
-  if (file.size > 1024 * 1024) {
-    return false;
-  }
-
-  return true;
-}
-/**
- * Mulberry32 Pseudorandom Number Generator
- * Fast, high-quality PRNG with good statistical properties
- * @param {number} seed - Initial seed value (32-bit integer)
- * @returns {function} Function that returns random numbers [0, 1)
- */
-function mulberry32(seed) {
-  let t = seed >>> 0; // Ensure 32-bit unsigned integer
-  return function() {
-    t += 0x6D2B79F5;
-    let r = Math.imul(t ^ (t >>> 15), 1 | t);
-    r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
-    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
-  };
-}
 /** Clamp value between min and max bounds */
 function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
 
@@ -150,11 +115,6 @@ const refs = {
   fileInput: document.getElementById('fileInput'),
 
   canvas: document.getElementById('canvas'),
-  hrBar: document.getElementById('hrBar'),
-  brBar: document.getElementById('brBar'),
-  hrVal: document.getElementById('hrVal'),
-  brVal: document.getElementById('brVal'),
-
   // Layer preview canvases
   layer1: document.getElementById('layer1'),
   layer2: document.getElementById('layer2'),
@@ -230,32 +190,9 @@ function captureLayer(sourceCanvas, targetCanvas) {
  * Apply preset parameter configuration to UI controls
  * @param {string} name - Preset name (classic, elastic, grainy, chaotic, minimal)
  */
-function applyPreset(name){
-  const presets = {
-    classic: { amp:12, lambda:80, rotJ:6, spacing:4, noise:0.2, lines:6, blur:0.5, contrast:0.9, colorVariation:0, bgBrightness:0.2, bgHue:240, grainDensity:0.3, grainBrightness:0.6 },
-    elastic: { amp:22, lambda:60, rotJ:10, spacing:2, noise:0.15, lines:8, blur:0.8, contrast:0.85, colorVariation:0.3, bgBrightness:0.25, bgHue:200, grainDensity:0.4, grainBrightness:0.7 },
-    grainy:  { amp:6,  lambda:120,rotJ:2, spacing:6, noise:0.35, lines:2, blur:0.4, contrast:0.75, colorVariation:0.1, bgBrightness:0.15, bgHue:30, grainDensity:0.8, grainBrightness:0.5 },
-    chaotic: { amp:18, lambda:70, rotJ:14,spacing:0, noise:0.3,  lines:14, blur:1.0, contrast:0.8, colorVariation:0.6, bgBrightness:0.35, bgHue:300, grainDensity:0.6, grainBrightness:0.8 },
-    minimal: { amp:2,  lambda:140,rotJ:0, spacing:6, noise:0.05, lines:0,  blur:0.0, contrast:1.0, colorVariation:0, bgBrightness:0.4, bgHue:180, grainDensity:0.1, grainBrightness:0.3 },
-  };
-
-  const preset = presets[name];
-  if(!preset) return;
-
-  // Apply all preset values to corresponding UI controls
-  refs.amp.value = preset.amp;
-  refs.lambda.value = preset.lambda;
-  refs.rotJ.value = preset.rotJ;
-  refs.spacing.value = preset.spacing;
-  refs.noise.value = preset.noise;
-  refs.lines.value = preset.lines;
-  refs.blur.value = preset.blur;
-  refs.contrast.value = preset.contrast;
-  refs.colorVariation.value = preset.colorVariation;
-  refs.bgBrightness.value = preset.bgBrightness;
-  refs.bgHue.value = preset.bgHue;
-  refs.grainDensity.value = preset.grainDensity;
-  refs.grainBrightness.value = preset.grainBrightness;
+function applyPreset(name) {
+  const values = ArtCore.preset(name);
+  for (const [key, value] of Object.entries(values)) refs[paramRefs[key]].value = value;
 }
 
 // ========================================
@@ -270,6 +207,16 @@ function applyPreset(name){
  * Stages: Background → Text → Warp → Noise → Lines → Blur → Contrast
  */
 function render(){
+  document.querySelectorAll('input[type="range"]').forEach(input => {
+    let output = document.getElementById(input.id + 'Output');
+    if (!output) {
+      output = document.createElement('output');
+      output.id = input.id + 'Output';
+      output.htmlFor = input.id;
+      input.after(output);
+    }
+    output.textContent = input.value;
+  });
   const W = refs.canvas.width, H = refs.canvas.height;
   const seed = Number(refs.seed.value);
   if (refs.seed.value.trim() === '' || !Number.isInteger(seed) || seed < 0 || seed > 1e9) {
@@ -574,14 +521,7 @@ function render(){
 let statusKey = '';
 function showStatus(key) {
   statusKey = key;
-  const messages = {
-    empty: '文字を入力してください。',
-    invalidSeed: 'Seedは0〜1000000000の整数で入力してください。',
-    invalidSettings: '設定を読み込めません。64 KiB以下の完全な設定JSONを選んでください。現在の設定は変更していません。',
-    loaded: '設定を読み込みました。',
-    cancelled: '読み込みを取り消しました。現在の設定は変更していません。'
-  };
-  document.getElementById('status').textContent = key ? messages[key] : '';
+  document.getElementById('status').textContent = key ? ArtI18n.t(key) : '';
 }
 
 function clearOutput() {
@@ -604,7 +544,7 @@ function updateStatistics() {
   document.getElementById('transitionsVal').textContent = String(stats.transitions);
   document.getElementById('runsVal').textContent = String(stats.runs);
   document.getElementById('thresholdVal').textContent = stats.threshold.toFixed(2);
-  document.getElementById('inversion').textContent = stats.inverted ? '明るい側を集計' : '暗い側を集計';
+  document.getElementById('inversion').textContent = ArtI18n.t(stats.inverted ? 'brightMask' : 'darkMask');
 }
 
 // ========================================
@@ -637,7 +577,7 @@ function downloadPNG(){
 }
 /**
  * Download current CAPTCHA as SVG (with embedded PNG)
- * Creates an SVG wrapper around the PNG for scalability
+ * The embedded image is raster data, not vector text or curves.
  */
 function downloadSVG(){
   const png = refs.canvas.toDataURL('image/png');
@@ -649,13 +589,7 @@ function downloadSVG(){
       <image href="${png}" x="0" y="0" width="${W}" height="${H}" />
     </svg>`;
 
-  const blob = new Blob([svg], {type:'image/svg+xml'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `captcha-art_${getTimestamp()}.svg`;
-  a.click();
-  URL.revokeObjectURL(url); // Clean up blob URL
+  downloadBlob(new Blob([svg], {type: 'image/svg+xml'}), 'captcha-art_' + getTimestamp() + '.svg');
 }
 // Export the same validated values that drive rendering.
 const paramRefs = {
@@ -702,7 +636,7 @@ async function handleFileLoad(event) {
     if (file.size > ArtCore.LIMIT_BYTES) throw new Error('invalidSettings');
     const value = ArtCore.parseSettings(await file.text());
     if (ticket !== revision) return;
-    if (!confirm('現在の設定を、このファイルの設定に置き換えますか？')) {
+    if (!confirm(ArtI18n.t('confirmLoad'))) {
       showStatus('cancelled');
       return;
     }
@@ -749,6 +683,13 @@ refs.fileInput.addEventListener('change', handleFileLoad);
 // Use continuous range controls so all valid saved decimals round trip unchanged.
 Object.values(paramRefs).forEach(key => {
   if (key !== 'seed' && key !== 'lines') refs[key].step = 'any';
+});
+document.addEventListener('languagechange', () => {
+  const previousStatus = statusKey;
+  render();
+  if (previousStatus) showStatus(previousStatus);
+  const open = document.documentElement.classList.contains('show-help');
+  document.getElementById('helpToggle').textContent = ArtI18n.t(open ? 'hideHelp' : 'ui2');
 });
 applyPreset('classic');
 render();
