@@ -32,7 +32,7 @@ The `render()` function executes a 7-stage pipeline, with each stage captured to
 
 ### Key Architecture Patterns
 
-- **Seeded PRNG**: A fresh Mulberry32 stream on every render, with no finite cache or wraparound at 10,000 values.
+- **Seeded PRNG**: Mode 2 uses independent Mulberry32 streams per stage, derived by XOR with fixed stage salts. Mode 1 shares a single stream for reproduction. Keep both formats stable.
 - **Reproduction**: Requires the same settings, browser and font environment. Cross-platform pixel equality is not promised.
 - **Offscreen buffers**: `buf1` (compositing) and `buf2` (text before warp) enable multi-pass rendering
 - **DOM refs object**: Central registry (`refs`) for all UI element references
@@ -64,7 +64,10 @@ For deployment to GitHub Pages:
 - **Text**: Maximum 32 Unicode code points; punctuation is safe as Canvas text. Long text scales to fit.
 - **Import**: Complete JSON up to 64 KiB, strict types/ranges, seed and lines integers; validate before confirmation and application.
 - **Concurrency**: A revision counter prevents pending file reads from overwriting intervening input changes.
-- **Export**: PNG 640×200; SVG wraps that raster PNG; JSON version 1 contains all settings including text, but no theme/language.
+- **Export**: PNG 640×200; SVG wraps that raster PNG; JSON version 1 contains all settings including text and rendererVersion (1 or 2), but no theme/language or comparison. Missing rendererVersion means mode 1.
+- **Blur**: Mode 2 range is 0–2. Mode 1 accepts 0–3, with identical processing at 2–3. Switching to mode 2 clamps above 2 with a visible notice.
+- **Comparison**: One pinned canvas/settings/statistics snapshot in memory only. Empty/invalid input clears the current side, not the explicitly labelled reference. Clear-reference and reload discard it.
+- **Mask**: Render the exact analyzePixels mask; black means selected. Never imply text segmentation or a readability/security rating.
 - **Empty state**: Clear the output, seven stages and statistics; disable saves. Invalid seed has the same output behavior.
 - **Security**: Local classic scripts support file://. No dependencies, external requests, inline handlers or permissive script CSP.
 - **Theme system**: CSS custom properties in `:root` and `[data-theme="light"]`

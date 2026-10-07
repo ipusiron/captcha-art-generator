@@ -132,3 +132,30 @@ test('returned mask exactly accounts for statistics including inversion and alph
   }
   assert.deepEqual([...core.analyzePixels(new Uint8ClampedArray(4), 1, 1).mask], [0]);
 });
+
+test('all 2x2 binary images match independent run and transition counts', () => {
+  for (let bits = 0; bits < 16; bits++) {
+    const dark = Array.from({length: 4}, (_, i) => (bits >> i) & 1);
+    const inverted = dark.filter(Boolean).length > 4 * .55;
+    const expected = dark.map(v => inverted ? 1 - v : v);
+    const pixels = Uint8ClampedArray.from(dark.flatMap(v => [v ? 0 : 255, v ? 0 : 255, v ? 0 : 255, 255]));
+    const result = core.analyzePixels(pixels, 2, 2);
+    assert.deepEqual([...result.mask], expected);
+    let transitions = 0, runs = 0;
+    for (const row of [expected.slice(0, 2), expected.slice(2)]) {
+      transitions += Number(row[0] !== row[1]);
+      runs += Number(row[0] === 1 || row[1] === 1);
+    }
+    assert.equal(result.transitions, transitions);
+    assert.equal(result.runs, runs);
+  }
+});
+test('mask inversion is strictly above 55 percent, not at 55 percent', () => {
+  for (const black of [11, 12]) {
+    const pixels = Uint8ClampedArray.from(Array.from({length: 20}, (_, i) =>
+      i < black ? [0, 0, 0, 255] : [255, 255, 255, 255]).flat());
+    const result = core.analyzePixels(pixels, 20, 1);
+    assert.equal(result.inverted, black === 12);
+    assert.equal(result.selected, black === 12 ? 8 : 11);
+  }
+});

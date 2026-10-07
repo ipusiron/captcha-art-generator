@@ -31,7 +31,7 @@ for (const [index, doc] of docs.entries()) {
     assert.ok(links.length >= 4);
     for (const link of links) assert.ok(fs.existsSync(link.split('#')[0]), link);
     const images = [...doc.matchAll(/!\[[^\]]*\]\((assets\/[^)]+)\)/g)].map(m => m[1]);
-    assert.equal(images.length, 2);
+    assert.equal(images.length, 4);
     for (const image of images) {
       const bytes = fs.readFileSync(image);
       assert.ok(bytes.length <= 300 * 1024);
@@ -70,4 +70,17 @@ test('both docs describe scope and have no retrospective change notes', () => {
   assert.match(docs[0], /読み取り成功率/);
   assert.match(docs[1], /does not measure human or OCR reading success/);
   for (const doc of docs) assert.doesNotMatch(doc, /previously|used to|earlier version|formerly|改修前|以前は/i);
+});
+test('both docs explain rendering compatibility, mask and nonpersistent reference', () => {
+  for (const doc of docs) {
+    assert.match(doc, /`rendererVersion`/);
+    assert.match(doc, /`blur`/);
+    assert.match(doc, /0\.7.*0\.15/);
+    assert.match(doc, /screenshot3\.png/);
+    assert.match(doc, /screenshot4\.png/);
+  }
+  assert.match(docs[0], /省略時は方式1/);
+  assert.match(docs[1], /Omitting it selects mode 1/);
+  assert.match(docs[0], /比較元の画像や設定、統計は含みません/);
+  assert.match(docs[1], /not the reference image, reference settings or statistics/);
 });

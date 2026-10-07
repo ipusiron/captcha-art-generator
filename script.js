@@ -634,7 +634,8 @@ function updateComparison() {
     const before = comparison.stats[key] * scale, after = currentStats[key] * scale;
     const delta = Number((after - before).toFixed(digits));
     const unit = key === 'occupancy' ? ' ' + ArtI18n.t('percentagePoints') : '';
-    appendRow(statsBody, [ArtI18n.t(label), before.toFixed(digits), after.toFixed(digits),
+    const percent = key === 'occupancy' ? '%' : '';
+    appendRow(statsBody, [ArtI18n.t(label), before.toFixed(digits) + percent, after.toFixed(digits) + percent,
       (delta > 0 ? '+' : '') + delta.toFixed(digits) + unit]);
   }
   appendRow(statsBody, [ArtI18n.t('selectedSide'), ArtI18n.t(comparison.stats.inverted ? 'brightMask' : 'darkMask'),

@@ -28,6 +28,14 @@ It does not measure human or OCR reading success or security strength, and does 
 >
 > *Layer previews in the dark theme*
 
+> ![Pinned reference and current image](assets/en/screenshot3.png)
+>
+> *Image and settings comparison after changing only noise density*
+
+> ![Counted pixels shown in black](assets/en/screenshot4.png)
+>
+> *Inspecting the counted pixels and their percentage*
+
 ## 📖 Getting started
 
 1. Enter `HELLO42` in the text field.
@@ -35,6 +43,11 @@ It does not measure human or OCR reading success or security strength, and does 
 3. Open “Distortion and noise” and change one value at a time.
 4. Open “Layers” to compare intermediate stages with the final image.
 5. Save a PNG or SVG image. Save settings as JSON to resume later.
+
+To compare images, select rendering mode 2, press “Use current image as reference”, then change noise density.
+Inspect the pinned and current images, changed settings and statistics differences.
+Open “View the counted pixels” to show the pixels counted by the statistics in black.
+White pixels are excluded.
 
 “Show explanations” reveals help for each control.
 Use Tab to move between controls and arrow keys to adjust sliders.
@@ -48,6 +61,8 @@ Image generation works even when language and theme preferences cannot be saved.
 - Seven static stage previews and image statistics
 - PNG, SVG with embedded PNG, and settings JSON downloads
 - Japanese and English; light and dark themes
+- One pinned reference, changed settings and image statistics differences
+- A black-and-white counted-pixel view and pixel count
 
 | Preset | Characteristics |
 |---|---|
@@ -79,6 +94,8 @@ Minimal is a comparison preset, not a guaranteed accessible authentication alter
 The seven stages are background → text → two-axis sine-wave warp → noise → lines → blur → gamma correction.
 Each stage is a static preview updated when settings change.
 Blur approximates smoothing by downscaling and upscaling.
+Mode 2 accepts blur values from 0 to 2, with a scale factor of `max(0.7, min(1, 1 - value × 0.15))`.
+Mode 1 accepts 0 to 3 to preserve saved values; values from 2 to 3 have the same effect.
 “Brightness adjustment” changes both text brightness and final gamma correction; it does not measure a contrast ratio.
 
 1. Composite transparent pixels on white and calculate brightness as `0.2126R + 0.7152G + 0.0722B`.
@@ -88,6 +105,8 @@ Blur approximates smoothing by downscaling and upscaling.
 
 This does not detect text regions.
 Patterns without text also have statistics; no good value or passing threshold is defined.
+Black pixels in the mask are exactly the pixels selected by this calculation.
+The display does not apply a separate threshold.
 
 The table uses opaque 4×2-pixel images.
 `0` means white, `1` means black, and `/` separates rows.
@@ -100,8 +119,19 @@ Percentages and thresholds use two decimal places, matching the screen.
 | `1010/0101` | 50.00 | 6 | 4 | 108.37 |
 
 Each render generates random numbers from the same seed.
+Mode 2 uses separate streams for background, text, warping, noise and lines.
+Changing the background particle count does not shift text rotation randomness, and changing noise density does not shift line-placement randomness.
+Processing effects still carry through subsequent stages because the image is built cumulatively.
+Mode 1 shares one stream across all stages, so changing particle counts can also affect later random values.
 The same settings and rendering environment reproduce an image, but different browsers, operating systems or fonts can change the pixels.
 Do not use this random generator for cryptographic keys or production authentication challenges.
+
+The reference pins one image and its settings in page memory.
+Language and theme changes retain it; “Clear reference” or reloading the page removes it.
+Statistics differences are current minus reference; percentage differences are in percentage points.
+Each image has its own threshold and counted side, so the pixel selection criteria may differ.
+Check the displayed counted side as well.
+A notice appears when rendering modes differ or mode 1 is used. Differences are not rated as better or worse for security or readability.
 
 ## 💾 Saving and loading settings
 
@@ -114,6 +144,11 @@ If you enter sensitive text, it will also be present in the saved file.
 Invalid values, cancellation, or input changes made while a file is being read do not overwrite the current settings.
 
 The JSON `version` is 1.
+`rendererVersion` is the rendering mode, an integer of 1 or 2. Omitting it selects mode 1 for reproduction.
+The initial screen uses mode 2; saved settings record the selected mode.
+Mode 2 validates `blur` from 0 to 2; mode 1 accepts 0 to 3.
+Switching from mode 1 to mode 2 sets blur values above 2 to the equivalent value 2 and displays a notice.
+Switching modes also changes the random streams, so the full image does not remain identical.
 It requires `text`, `font`, `preset`, and every numeric field defined in `ArtCore.RANGES`.
 `seed` must be an integer from 0 to 1000000000 and `lines` an integer from 0 to 20. Other fields are also checked for type and range.
 Unknown fields and numeric strings are rejected.
@@ -121,14 +156,17 @@ Complete settings without `version`, and an optional parseable date string in `t
 If a preset name does not match its numeric values, the values are preserved and the preset is treated as Custom.
 
 Clearing the text clears the generated image, all seven stage previews and statistics, and disables the save buttons.
+It also clears the counted-pixel display and current comparison image. A pinned reference is retained with an explicit notice.
+Settings JSON contains only the current settings, not the reference image, reference settings or statistics.
 
 ## 📚 Learning activities
 
 1. Start with Minimal and change only wave amplitude to compare letter shapes.
-2. Keep the seed fixed and change noise density and line count separately.
+2. In mode 2, fix the seed, pin a reference, then change noise density and line count separately.
 3. Use the layer previews to distinguish text distortion from background processing.
 4. Record your visual reading experience and the image statistics, considering why they are not the same evaluation.
 5. Reload settings JSON to confirm image reproduction in the same environment.
+6. Open the counted-pixel view to see that noise and background pixels can be counted as well as text.
 
 Studying effects on OCR requires a separate OCR engine, ground-truth text and a collection of test images.
 This tool alone cannot compare OCR accuracy.
@@ -188,9 +226,13 @@ captcha-art-generator/       # Project root
 ├── assets/                  # Screenshots
 │   ├── screenshot.png       # Japanese light view
 │   ├── screenshot2.png      # Japanese dark stages
+│   ├── screenshot3.png      # Japanese before/after comparison
+│   ├── screenshot4.png      # Japanese counted-pixel view
 │   └── en/                  # English screenshots
 │       ├── screenshot.png   # English light view
-│       └── screenshot2.png  # English dark stages
+│       ├── screenshot2.png  # English dark stages
+│       ├── screenshot3.png  # English before/after comparison
+│       └── screenshot4.png  # English counted-pixel view
 ├── index.html               # Page structure and CSP
 ├── js/                      # Shared modules
 │   ├── art-core.js          # PRNG, validation and statistics
