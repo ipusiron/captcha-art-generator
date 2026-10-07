@@ -557,6 +557,21 @@ a:hover{
 */
 
 /* Mobile-first sizing and keyboard access. */
+[hidden] { display:none !important; }
+.analysis-canvas { display:block; width:100%; height:auto; border:1px solid var(--border); }
+#maskCanvas { image-rendering:pixelated; }
+.comparison { border-top:1px solid var(--border); margin-top:1.5rem; padding-top:1rem; min-width:0; }
+.comparison-images { display:grid; grid-template-columns:minmax(0, 1fr); gap:1rem; }
+.comparison figure { margin:0; min-width:0; }
+.comparison figcaption { margin-bottom:.5rem; font-weight:600; }
+.comparison-table-wrap { max-width:100%; overflow-x:auto; }
+.comparison table { width:100%; border-collapse:collapse; font-size:.875rem; }
+.comparison th, .comparison td { padding:.5rem; text-align:left; border-bottom:1px solid var(--border); overflow-wrap:anywhere; }
+.comparison th { font-weight:600; }
+.comparison-table-wrap:focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
+@media (min-width:600px) {
+  .comparison-images { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+}
 html { line-height:1.5; overflow-wrap:anywhere; }
 .header-actions { display:flex; justify-content:center; gap:8px; margin-top:12px; }
 button, summary { min-height:44px; min-width:44px; font:inherit; cursor:pointer; }

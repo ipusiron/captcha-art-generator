@@ -35,6 +35,14 @@
       </label>
 
       <p class="note" data-i18n="textLimit">最大32文字（Unicodeコードポイント）。長い文字列は画像内に縮小します。</p>
+      <label class="field">
+        <span data-i18n="renderMode">描画方式</span>
+        <select id="rendererVersion">
+          <option value="2" data-i18n="render2" selected>方式2：工程ごとに乱数を分離</option>
+          <option value="1" data-i18n="render1">方式1：乱数を全工程で共有</option>
+        </select>
+      </label>
+      <p id="rendererNote" class="note"></p>
       <div class="grid-2">
         <label class="field">
           <span><span data-i18n="ui4">フォント</span></span>
@@ -109,7 +117,7 @@
           <div class="sliders">
             <label class="field">
               <span><span data-i18n="ui24">ぼかしの強さ</span><span class="help-text"><span data-i18n="ui25">縮小して拡大する加工の強さ。値はガウスぼかしの半径ではない</span></span></span>
-              <input id="blur" type="range" min="0" max="3" value="0.5" step="0.1" />
+              <input id="blur" type="range" min="0" max="2" value="0.5" step="0.1" />
             </label>
             <label class="field">
               <span><span data-i18n="ui26">明るさ補正</span><span class="help-text"><span data-i18n="ui27">文字の明るさと最終画像のガンマ補正を同時に変える。コントラスト比の測定値ではない</span></span></span>
@@ -194,12 +202,71 @@
           <div class="meter"><dt><span data-i18n="ui53">二値化のしきい値（0〜255）</span></dt><dd id="thresholdVal">—</dd></div>
         </dl>
         <p id="inversion"></p>
+        <details id="maskDetails" class="details">
+          <summary data-i18n="maskTitle">集計対象の画素を見る</summary>
+          <p class="note" data-i18n="maskNote">黒が集計対象、白が対象外です。文字の領域を検出した画像ではありません。</p>
+          <canvas id="maskCanvas" width="640" height="200" class="analysis-canvas"
+            aria-label="集計対象の画素" data-i18n-aria="maskImage"></canvas>
+          <p id="maskCount" class="note"></p>
+        </details>
         <details class="details">
           <summary><span data-i18n="ui54">集計方法と限界</span></summary>
           <p><span data-i18n="ui55">透明部分を白に重ね、RGBの加重平均で明るさを求めます。しきい値は平均の0.85倍を60〜180に収めた値です。</span></p>
           <p><span data-i18n="ui56">しきい値未満の画素を集計し、55%を超えたときは反転します。これは文字の領域を検出する処理ではありません。</span></p>
           <p><span data-i18n="ui57">切り替わりは同じ行の隣接画素の変化、連続区間は集計対象が横に連なるまとまりの数です。行をまたいで数えません。</span></p>
         </details>
+      </section>
+
+      <section class="comparison" aria-labelledby="comparisonTitle">
+        <h3 id="comparisonTitle" data-i18n="compareTitle">変更前と変更後を比較</h3>
+        <p class="note" data-i18n="compareHelp">比較元を固定してから、設定を1つずつ変えてください。比較元はこのページを開いている間だけ保持し、設定JSONには含めません。</p>
+        <div class="btn-group">
+          <button id="pinComparison" class="btn" data-i18n="pinCompare">現在の画像を比較元にする</button>
+          <button id="clearComparison" class="btn" data-i18n="clearCompare" disabled>比較元を消す</button>
+        </div>
+        <p id="comparisonStatus" class="note" role="status"></p>
+        <div id="comparisonContent" hidden>
+          <div class="comparison-images">
+            <figure>
+              <figcaption data-i18n="compareBefore">比較元（固定）</figcaption>
+              <canvas id="beforeCanvas" width="640" height="200" class="analysis-canvas"
+                aria-label="固定した比較元の画像" data-i18n-aria="beforeImage"></canvas>
+              <p id="beforeSummary" class="note"></p>
+            </figure>
+            <figure>
+              <figcaption data-i18n="compareAfter">現在の画像</figcaption>
+              <canvas id="afterCanvas" width="640" height="200" class="analysis-canvas"
+                aria-label="比較用の現在の画像" data-i18n-aria="afterImage"></canvas>
+              <p id="afterSummary" class="note"></p>
+            </figure>
+          </div>
+          <p id="comparisonWarning" class="note"></p>
+          <p class="note" data-i18n="compareLimits">増減は読みやすさや安全性の優劣を示しません。しきい値と集計側は画像ごとに決まるため、同じ条件での画素数の比較とは限りません。</p>
+          <h4 data-i18n="changedSettings">変更した設定</h4>
+          <p id="noChanges" class="note"></p>
+          <div class="comparison-table-wrap" tabindex="0" role="region" aria-label="設定の差" data-i18n-aria="changedSettings">
+            <table>
+              <thead><tr>
+                <th scope="col" data-i18n="settingName">項目</th>
+                <th scope="col" data-i18n="compareBefore">比較元（固定）</th>
+                <th scope="col" data-i18n="compareAfter">現在の画像</th>
+              </tr></thead>
+              <tbody id="settingsDiff"></tbody>
+            </table>
+          </div>
+          <h4 data-i18n="statsDifference">画像統計の差</h4>
+          <div class="comparison-table-wrap" tabindex="0" role="region" aria-label="画像統計の差" data-i18n-aria="statsDifference">
+            <table>
+              <thead><tr>
+                <th scope="col" data-i18n="settingName">項目</th>
+                <th scope="col" data-i18n="compareBefore">比較元（固定）</th>
+                <th scope="col" data-i18n="compareAfter">現在の画像</th>
+                <th scope="col" data-i18n="difference">差（現在 − 比較元）</th>
+              </tr></thead>
+              <tbody id="statsDiff"></tbody>
+            </table>
+          </div>
+        </div>
       </section>
 
       <details class="details">

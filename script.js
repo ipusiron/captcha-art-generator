@@ -229,7 +229,8 @@ function render(){
     showStatus('invalidSeed');
     return;
   }
-  const rng = ArtCore.mulberry32(seed);
+  const streams = ArtCore.stageRandom(seed, Number(document.getElementById('rendererVersion').value));
+  let rng = streams.background;
   const text = sanitizeText(refs.text.value);
   if (refs.text.value !== text) refs.text.value = text;
   if (!text.trim()) {
@@ -288,6 +289,7 @@ function render(){
   // STAGE 2: TEXT RENDERING
   // ========================================
   // Render text with individual character transformations
+  rng = streams.text;
   b2.clearRect(0,0,W,H);
   b2.save();
   b2.font = font;
@@ -363,6 +365,7 @@ function render(){
   const sp = src.data, dp = dst.data;
 
   // Generate random phase offsets for sine waves
+  rng = streams.warp;
   const phaseX = rng()*Math.PI*2; // Horizontal wave phase
   const phaseY = rng()*Math.PI*2; // Vertical wave phase
 
@@ -412,6 +415,7 @@ function render(){
   // Add salt-and-pepper noise to interfere with OCR
   // Add random noise particles across the image
   const nCount = Math.floor(W*H*noise*0.5); // Scale noise density by parameter
+  rng = streams.noise;
   for(let i=0;i<nCount;i++){
     const x = Math.floor(rng()*W), y = Math.floor(rng()*H);
     const val = rng() < 0.5 ? 230*contrast : 15; // Random bright or dark pixel
@@ -428,6 +432,7 @@ function render(){
   // Draw random lines across the image to obstruct text
   b1.save();
   b1.globalAlpha = 0.75; // Make lines semi-transparent
+  rng = streams.lines;
 
   for(let i=0;i<lines;i++){
     // Position line endpoints to avoid heavy clustering over text center
@@ -472,7 +477,7 @@ function render(){
   if(blur > 0){
     // Use downscale-upscale technique for blur approximation
     // (True Gaussian blur would require complex convolution)
-    const scale = clamp(1 - blur*0.15, 0.7, 1); // Calculate scale factor
+    const scale = ArtCore.blurScale(blur);
 
     // Create temporary smaller canvas
     const tmp = document.createElement('canvas');
@@ -540,6 +545,10 @@ function clearOutput() {
   refs.btnPNG.disabled = true;
   refs.btnSVG.disabled = true;
   refs.btnParams.disabled = true;
+  currentStats = null;
+  document.getElementById('maskCanvas').getContext('2d', {willReadFrequently: true}).clearRect(0, 0, 640, 200);
+  document.getElementById('maskCount').textContent = '';
+  updateComparison();
 }
 
 function updateStatistics() {
@@ -550,6 +559,87 @@ function updateStatistics() {
   document.getElementById('runsVal').textContent = String(stats.runs);
   document.getElementById('thresholdVal').textContent = stats.threshold.toFixed(2);
   document.getElementById('inversion').textContent = ArtI18n.t(stats.inverted ? 'brightMask' : 'darkMask');
+  currentStats = stats;
+  const maskCtx = document.getElementById('maskCanvas').getContext('2d', {willReadFrequently: true});
+  const image = maskCtx.createImageData(refs.canvas.width, refs.canvas.height);
+  stats.mask.forEach((value, i) => {
+    const gray = value ? 0 : 255;
+    image.data.set([gray, gray, gray, 255], i * 4);
+  });
+  maskCtx.putImageData(image, 0, 0);
+  document.getElementById('maskCount').textContent = `${ArtI18n.t('selectedPixels')}: ${stats.selected} / ${stats.total}`;
+  updateComparison();
+}
+
+// A single pinned snapshot lives only in memory. Current output may be absent.
+let currentStats = null;
+let comparison = null;
+const settingLabels = {
+  text: 'ui3', font: 'ui4', rendererVersion: 'renderMode', seed: 'seedLabel',
+  amp: 'ui9', lambda: 'ui11', rotJitterDeg: 'ui14', spacing: 'ui16', noise: 'ui19',
+  lines: 'ui21', blur: 'ui24', contrast: 'ui26', colorVariation: 'ui28',
+  bgBrightness: 'ui31', bgHue: 'ui33', grainDensity: 'ui35', grainBrightness: 'ui37'
+};
+function appendRow(body, values) {
+  const row = document.createElement('tr');
+  values.forEach((value, index) => {
+    const cell = document.createElement(index === 0 ? 'th' : 'td');
+    if (index === 0) cell.scope = 'row';
+    cell.textContent = String(value);
+    row.append(cell);
+  });
+  body.append(row);
+}
+function statsSummary(stats, settings) {
+  return `${ArtI18n.t('renderMode')}: ${settings.rendererVersion ?? 1}; Seed: ${settings.seed}; ` +
+    `${ArtI18n.t('ui53')}: ${stats.threshold.toFixed(2)}; ` +
+    ArtI18n.t(stats.inverted ? 'brightMask' : 'darkMask');
+}
+function updateRendererNote() {
+  const mode = Number(document.getElementById('rendererVersion').value);
+  refs.blur.max = mode === 1 ? '3' : '2';
+  document.getElementById('rendererNote').textContent = ArtI18n.t(mode === 1 ? 'render1Note' : 'render2Note');
+}
+function updateComparison() {
+  document.getElementById('pinComparison').disabled = !currentStats;
+  document.getElementById('pinComparison').textContent = ArtI18n.t(comparison ? 'replaceCompare' : 'pinCompare');
+  document.getElementById('clearComparison').disabled = !comparison;
+  document.getElementById('comparisonContent').hidden = !comparison;
+  document.getElementById('comparisonStatus').textContent = ArtI18n.t(!comparison ? 'compareEmpty' :
+    currentStats ? 'compareReady' : 'compareNoCurrent');
+  const afterCtx = document.getElementById('afterCanvas').getContext('2d', {willReadFrequently: true});
+  afterCtx.clearRect(0, 0, 640, 200);
+  const settingsBody = document.getElementById('settingsDiff');
+  const statsBody = document.getElementById('statsDiff');
+  settingsBody.replaceChildren();
+  statsBody.replaceChildren();
+  document.getElementById('comparisonWarning').textContent = '';
+  document.getElementById('noChanges').textContent = '';
+  document.getElementById('afterSummary').textContent = '';
+  if (!comparison) return;
+  document.getElementById('beforeSummary').textContent = statsSummary(comparison.stats, comparison.settings);
+  if (!currentStats) return;
+  afterCtx.drawImage(refs.canvas, 0, 0);
+  const value = currentSettings();
+  document.getElementById('afterSummary').textContent = statsSummary(currentStats, value);
+  const changes = ArtCore.diffSettings(comparison.settings, value);
+  if (!changes.length) document.getElementById('noChanges').textContent = ArtI18n.t('sameSettings');
+  changes.forEach(change => appendRow(settingsBody, [ArtI18n.t(settingLabels[change.key]), change.before, change.after]));
+  const differentMode = (comparison.settings.rendererVersion ?? 1) !== value.rendererVersion;
+  document.getElementById('comparisonWarning').textContent = differentMode ? ArtI18n.t('differentRenderer') :
+    value.rendererVersion === 1 ? ArtI18n.t('sharedRandomWarning') : '';
+  const metrics = [['occupancy', 'ui50', 100, 2], ['transitions', 'ui51', 1, 0],
+    ['runs', 'ui52', 1, 0], ['threshold', 'ui53', 1, 2]];
+  for (const [key, label, scale, digits] of metrics) {
+    const before = comparison.stats[key] * scale, after = currentStats[key] * scale;
+    const delta = Number((after - before).toFixed(digits));
+    const unit = key === 'occupancy' ? ' ' + ArtI18n.t('percentagePoints') : '';
+    appendRow(statsBody, [ArtI18n.t(label), before.toFixed(digits), after.toFixed(digits),
+      (delta > 0 ? '+' : '') + delta.toFixed(digits) + unit]);
+  }
+  appendRow(statsBody, [ArtI18n.t('selectedSide'), ArtI18n.t(comparison.stats.inverted ? 'brightMask' : 'darkMask'),
+    ArtI18n.t(currentStats.inverted ? 'brightMask' : 'darkMask'),
+    ArtI18n.t(comparison.stats.inverted === currentStats.inverted ? 'sameSide' : 'changedSide')]);
 }
 
 // ========================================
@@ -603,7 +693,8 @@ const paramRefs = {
   bgHue: 'bgHue', grainDensity: 'grainDensity', grainBrightness: 'grainBrightness', seed: 'seed'
 };
 function currentSettings() {
-  const value = {version: 1, text: refs.text.value, font: refs.font.value, preset: refs.preset.value};
+  const value = {version: 1, rendererVersion: Number(document.getElementById('rendererVersion').value),
+    text: refs.text.value, font: refs.font.value, preset: refs.preset.value};
   for (const [key, ref] of Object.entries(paramRefs)) value[key] = Number(refs[ref].value);
   return ArtCore.validateSettings(value);
 }
@@ -624,6 +715,8 @@ function downloadBlob(blob, filename) {
 }
 function loadParams(params) {
   const value = ArtCore.validateSettings(params);
+  document.getElementById('rendererVersion').value = String(value.rendererVersion ?? 1);
+  updateRendererNote();
   refs.text.value = value.text;
   refs.font.value = value.font;
   refs.preset.value = value.preset;
@@ -659,6 +752,27 @@ async function handleFileLoad(event) {
 // ========================================
 // EVENT LISTENERS
 // ========================================
+document.getElementById('rendererVersion').addEventListener('change', () => {
+  invalidateImport();
+  const saturating = Number(refs.blur.value) > 2 && document.getElementById('rendererVersion').value === '2';
+  updateRendererNote();
+  render();
+  if (saturating && currentStats) showStatus('blurNormalized');
+});
+document.getElementById('pinComparison').addEventListener('click', () => {
+  if (!currentStats) return;
+  comparison = {settings: currentSettings(), stats: currentStats};
+  const target = document.getElementById('beforeCanvas').getContext('2d', {willReadFrequently: true});
+  target.clearRect(0, 0, 640, 200);
+  target.drawImage(refs.canvas, 0, 0);
+  updateComparison();
+});
+document.getElementById('clearComparison').addEventListener('click', () => {
+  comparison = null;
+  document.getElementById('beforeCanvas').getContext('2d', {willReadFrequently: true}).clearRect(0, 0, 640, 200);
+  document.getElementById('beforeSummary').textContent = '';
+  updateComparison();
+});
 refs.preset.addEventListener('change', () => {
   invalidateImport();
   if (refs.preset.value !== 'custom') {
@@ -702,10 +816,12 @@ Object.values(paramRefs).forEach(key => {
 });
 document.addEventListener('languagechange', () => {
   const previousStatus = statusKey;
+  updateRendererNote();
   render();
   if (previousStatus) showStatus(previousStatus);
   const open = document.documentElement.classList.contains('show-help');
   document.getElementById('helpToggle').textContent = ArtI18n.t(open ? 'hideHelp' : 'ui2');
 });
 applyPreset('classic');
+updateRendererNote();
 render();
