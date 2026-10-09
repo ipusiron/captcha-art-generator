@@ -84,3 +84,33 @@ test('both docs explain rendering compatibility, mask and nonpersistent referenc
   assert.match(docs[0], /比較元の画像や設定、統計は含みません/);
   assert.match(docs[1], /not the reference image, reference settings or statistics/);
 });
+
+test('use-case examples unique to this tool match the core (ja and en)', () => {
+  const img = (pat) => {
+    const rows = pat.split('/');
+    const w = rows[0].length, h = rows.length;
+    const d = new Uint8ClampedArray(w * h * 4);
+    let k = 0;
+    for (const r of rows) for (const ch of r) { const v = ch === '1' ? 0 : 255; d[k] = v; d[k + 1] = v; d[k + 2] = v; d[k + 3] = 255; k += 4; }
+    return core.analyzePixels(d, w, h);
+  };
+  const blocky = img('1100/1100'), checker = img('1010/0101');
+  assert.deepEqual([blocky.occupancy, checker.occupancy], [0.5, 0.5]);
+  assert.deepEqual([blocky.transitions, checker.transitions], [2, 6]);
+  assert.deepEqual([blocky.runs, checker.runs], [2, 4]);
+  const white = img('0000/0000');
+  assert.equal(white.threshold, 180);
+  assert.equal(blocky.threshold.toFixed(3), '108.375');
+  const s1 = core.stageRandom(123, 2);
+  s1.background(); s1.background(); s1.background();
+  const after = s1.text();
+  const fresh = core.stageRandom(123, 2).text();
+  assert.equal(after, fresh);
+  const v1 = core.stageRandom(123, 1);
+  v1.background(); v1.background(); v1.background();
+  assert.notEqual(v1.text(), core.stageRandom(123, 1).text());
+  for (const doc of docs) {
+    assert.ok(doc.includes('108.375') && doc.includes('180'));
+    assert.ok(/\b2\b/.test(doc) && /\b6\b/.test(doc));
+  }
+});
