@@ -173,6 +173,12 @@ This tool alone cannot compare OCR accuracy.
 
 ## 🎯 Use cases
 
+Ways of using this tool in particular
+
+- Confirming that the same occupancy can have different shapes (statistics and image classes): `1100/1100` and `1010/0101` both have 50% black pixels, yet the switches within a row are 2 and 6 and the connected runs are 2 and 4. The single number of occupancy cannot tell a blocky pattern from a checkerboard. Just as an equal mean can hide a different spread, it shows that one summary alone does not capture the shape
+- Confirming a threshold that moves with brightness (image-processing and binarization classes): the threshold for which pixels count as black is set by taking 0.85 times the average brightness and clamping it to the range 60 to 180. The all-white `0000/0000` has an average of 255, so the threshold is capped at 180. The half-black `1100/1100` has an average of 127.5, so the threshold is 108.375. A threshold that moves with brightness and is capped within a range is the same idea as a camera's auto-exposure or adaptive binarization
+- Confirming reproducibility with an independent RNG per stage (RNG-design and reproducibility classes): renderer 2 builds a separate random stream for the background, text, warp, noise and lines from the XOR of the seed and a per-stage salt. So changing the number of background particles does not change the first value of the RNG used for the text rotation. Renderer 1 shares one stream across all stages, so changing one place shifts the RNG of the stages that follow. You can confirm, with the same seed, a design that seeds each part separately to keep reproducibility
+
 - Classes and training: an instructor adds one effect at a time while learners compare stages and image changes.
 - Events and exhibits: turn a visitor's phrase into an image and explain the difference between visual complexity and authentication security.
 - Design work: prototype text and background combinations. Do not substitute this for a readability study or accessibility conformance assessment.
